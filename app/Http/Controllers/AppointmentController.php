@@ -17,28 +17,33 @@ class AppointmentController extends Controller
     /**
      * Display a listing of appointments
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
-        
+        $status = $request->input('status');
+
         if ($user->role === 'admin') {
-            $appointments = Appointment::with(['pet.owner.user', 'doctor.user', 'service'])
-                ->orderBy('appointment_date', 'desc')
-                ->paginate(15);
+            $appointmentsQuery = Appointment::with(['pet.owner.user', 'doctor.user', 'service']);
+            if ($status) {
+                $appointmentsQuery->where('status', $status);
+            }
+            $appointments = $appointmentsQuery->orderBy('appointment_date', 'desc')->paginate(15);
         } elseif ($user->role === 'doctor') {
             $doctor = $user->doctor;
-            $appointments = Appointment::where('doctor_id', $doctor->id)
-                ->with(['pet.owner.user', 'service'])
-                ->orderBy('appointment_date', 'desc')
-                ->paginate(15);
+            $appointmentsQuery = Appointment::where('doctor_id', $doctor->id)->with(['pet.owner.user', 'service']);
+            if ($status) {
+                $appointmentsQuery->where('status', $status);
+            }
+            $appointments = $appointmentsQuery->orderBy('appointment_date', 'desc')->paginate(15);
         } else {
             $petOwner = $user->petOwner;
-            $appointments = Appointment::whereHas('pet', function ($q) use ($petOwner) {
+            $appointmentsQuery = Appointment::whereHas('pet', function ($q) use ($petOwner) {
                 $q->where('owner_id', $petOwner->id);
-            })
-            ->with(['pet', 'doctor.user', 'service'])
-            ->orderBy('appointment_date', 'desc')
-            ->paginate(15);
+            })->with(['pet', 'doctor.user', 'service']);
+            if ($status) {
+                $appointmentsQuery->where('status', $status);
+            }
+            $appointments = $appointmentsQuery->orderBy('appointment_date', 'desc')->paginate(15);
         }
         
         return view('appointments.index', compact('appointments'));
@@ -95,8 +100,12 @@ class AppointmentController extends Controller
         }
 
         // Get doctor (use provided or get the first available)
-        $doctorId = $request->doctor_id ?? Doctor::first()->id;
-        
+        $doctorId = $request->doctor_id;
+        if (!$doctorId) {
+            $defaultDoctor = Doctor::first();
+            $doctorId = $defaultDoctor ? $defaultDoctor->id : null;
+        }
+
         if (!$doctorId) {
             return back()->withErrors(['error' => 'No doctor available in the system.']);
         }
@@ -118,7 +127,7 @@ class AppointmentController extends Controller
             return back()->withErrors(['appointment_time' => 'This time slot is already booked. Please select another time.']);
         }
 
-        Appointment::create([
+        $appointment = Appointment::create([
             'pet_id' => $request->pet_id,
             'doctor_id' => $doctorId,
             'service_id' => $request->service_id,
@@ -132,13 +141,12 @@ class AppointmentController extends Controller
         $petName = $appointment->pet->name;
         $date = $appointment->appointment_date->format('M d, Y');
     
-    $this->notifyAdminsAndDoctors(
-        'appointment_request',
-        'New Appointment Request',
-        "{$petOwnerName} requested an appointment for {$petName} on {$date}",
-        $appointment->id
-    );
-
+        $this->notifyAdminsAndDoctors(
+            'appointment_request',
+            'New Appointment Request',
+            "{$petOwnerName} requested an appointment for {$petName} on {$date}",
+            $appointment->id
+        );
 
         $redirectRoute = $user->role === 'pet_owner' ? 'pet-owner.appointments' : 'appointments.index';
         return redirect()->route($redirectRoute)
@@ -177,6 +185,11 @@ class AppointmentController extends Controller
     {
         $user = Auth::user();
         
+        // Check if appointment is completed - prevent editing
+        if ($appointment->status === 'completed') {
+            return back()->with('error', 'Completed appointments cannot be edited.');
+        }
+        
         // Authorization check
         if ($user->role === 'pet_owner') {
             $petOwner = $user->petOwner;
@@ -208,12 +221,17 @@ class AppointmentController extends Controller
      */
     public function update(Request $request, Appointment $appointment)
     {
+        // Store old values for comparison
+        $oldDate = $appointment->appointment_date->format('Y-m-d');
+        $oldTime = $appointment->appointment_time;
+        $oldStatus = $appointment->status;
+        
         $request->validate([
             'pet_id' => 'required|exists:pets,id',
             'service_id' => 'required|exists:services,id',
             'doctor_id' => 'nullable|exists:doctors,id',
-            'appointment_date' => 'required|date',
-            'appointment_time' => 'required|date_format:H:i',
+            'appointment_date' => 'nullable|date',
+            'appointment_time' => 'nullable|date_format:H:i',
             'notes' => 'nullable|string|max:1000',
             'status' => 'nullable|in:pending,scheduled,completed,cancelled',
         ]);
@@ -241,32 +259,41 @@ class AppointmentController extends Controller
 
         $doctorId = $request->doctor_id ?? $appointment->doctor_id;
 
-        // Validate time is between 8 AM and 6 PM
-        $time = Carbon::createFromFormat('H:i', $request->appointment_time);
-        if ($time->hour < 8 || $time->hour >= 18) {
-            return back()->withErrors(['appointment_time' => 'Appointments can only be scheduled between 8:00 AM and 6:00 PM.']);
-        }
+        // Only validate time if date/time are being changed
+        if ($request->filled('appointment_date') && $request->filled('appointment_time')) {
+            // Validate time is between 8 AM and 6 PM
+            $time = Carbon::createFromFormat('H:i', $request->appointment_time);
+            if ($time->hour < 8 || $time->hour >= 18) {
+                return back()->withErrors(['appointment_time' => 'Appointments can only be scheduled between 8:00 AM and 6:00 PM.']);
+            }
 
-        // Check for time conflicts (excluding current appointment)
-        $conflict = Appointment::where('doctor_id', $doctorId)
-            ->where('appointment_date', $request->appointment_date)
-            ->where('appointment_time', $request->appointment_time)
-            ->where('status', '!=', 'cancelled')
-            ->where('id', '!=', $appointment->id)
-            ->exists();
+            // Check for time conflicts (excluding current appointment)
+            $conflict = Appointment::where('doctor_id', $doctorId)
+                ->where('appointment_date', $request->appointment_date)
+                ->where('appointment_time', $request->appointment_time)
+                ->where('status', '!=', 'cancelled')
+                ->where('id', '!=', $appointment->id)
+                ->exists();
 
-        if ($conflict) {
-            return back()->withErrors(['appointment_time' => 'This time slot is already booked. Please select another time.']);
+            if ($conflict) {
+                return back()->withErrors(['appointment_time' => 'This time slot is already booked. Please select another time.']);
+            }
         }
 
         $updateData = [
             'pet_id' => $request->pet_id,
             'doctor_id' => $doctorId,
             'service_id' => $request->service_id,
-            'appointment_date' => $request->appointment_date,
-            'appointment_time' => $request->appointment_time,
             'notes' => $request->notes,
         ];
+
+        // Only update date/time if provided
+        if ($request->filled('appointment_date')) {
+            $updateData['appointment_date'] = $request->appointment_date;
+        }
+        if ($request->filled('appointment_time')) {
+            $updateData['appointment_time'] = $request->appointment_time;
+        }
 
         // Only admin and doctor can update status
         if (in_array($user->role, ['admin', 'doctor']) && $request->has('status')) {
@@ -274,6 +301,37 @@ class AppointmentController extends Controller
         }
 
         $appointment->update($updateData);
+
+        // Notify pet owner if admin or doctor made changes
+        if (in_array($user->role, ['admin', 'doctor'])) {
+            $petOwnerUserId = $appointment->pet->owner->user_id;
+            $petName = $appointment->pet->name;
+            $newDate = $appointment->appointment_date->format('M d, Y');
+            $newTime = $appointment->appointment_time;
+            
+            // Build notification message based on what changed
+            $changes = [];
+            if ($request->filled('appointment_date') && $request->appointment_date != $oldDate) {
+                $changes[] = "date changed to {$newDate}";
+            }
+            if ($request->filled('appointment_time') && $request->appointment_time != $oldTime) {
+                $changes[] = "time changed to {$newTime}";
+            }
+            if ($request->has('status') && $request->status != $oldStatus) {
+                $changes[] = "status changed to " . ucfirst($request->status);
+            }
+            
+            if (!empty($changes)) {
+                $changeMessage = implode(', ', $changes);
+                $this->createNotification(
+                    $petOwnerUserId,
+                    'appointment_updated',
+                    'Appointment Updated',
+                    "Your appointment for {$petName} has been updated: {$changeMessage}.",
+                    $appointment->id
+                );
+            }
+        }
 
         $redirectRoute = $user->role === 'pet_owner' ? 'pet-owner.appointments' : 'appointments.index';
         return redirect()->route($redirectRoute)
@@ -384,25 +442,32 @@ class AppointmentController extends Controller
         return view('appointments.calendar', compact('appointments'));
     }
 
-       private function createNotification($userId, $type, $title, $message, $appointmentId = null)
-{
-    Notification::create([
-        'user_id' => $userId,
-        'type' => $type,
-        'title' => $title,
-        'message' => $message,
-        'appointment_id' => $appointmentId,
-    ]);
-}
-
-        private function notifyAdminsAndDoctors($type, $title, $message, $appointmentId = null)
-{
-    $users = User::whereIn('role', ['admin', 'doctor'])->get();
-    
-    foreach ($users as $user) {
-        $this->createNotification($user->id, $type, $title, $message, $appointmentId);
+    /**
+     * Create a notification for a specific user
+     */
+    private function createNotification($userId, $type, $title, $message, $appointmentId = null)
+    {
+        Notification::create([
+            'user_id' => $userId,
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'appointment_id' => $appointmentId,
+        ]);
     }
-}
+
+    /**
+     * Notify all admins and doctors
+     */
+    private function notifyAdminsAndDoctors($type, $title, $message, $appointmentId = null)
+    {
+        $users = User::whereIn('role', ['admin', 'doctor'])->get();
+        
+        foreach ($users as $user) {
+            $this->createNotification($user->id, $type, $title, $message, $appointmentId);
+        }
+    }
+
     /**
      * Request cancellation for an appointment (Pet Owner)
      */
@@ -445,20 +510,21 @@ class AppointmentController extends Controller
             'cancellation_reason' => $request->cancellation_reason,
             'cancellation_requested_at' => now(),
         ]);
-    $petOwnerName = Auth::user()->name;
-    $petName = $appointment->pet->name;
-    $date = $appointment->appointment_date->format('M d, Y');
-    
-    $this->notifyAdminsAndDoctors(
-        'cancellation_request',
-        'Cancellation Request',
-        "{$petOwnerName} requested to cancel appointment for {$petName} on {$date}",
-        $appointment->id
-    );
 
-    return redirect()->route('pet-owner.appointments')
-        ->with('success', 'Cancellation request submitted successfully.');
-}
+        $petOwnerName = Auth::user()->name;
+        $petName = $appointment->pet->name;
+        $date = $appointment->appointment_date->format('M d, Y');
+        
+        $this->notifyAdminsAndDoctors(
+            'cancellation_request',
+            'Cancellation Request',
+            "{$petOwnerName} requested to cancel appointment for {$petName} on {$date}",
+            $appointment->id
+        );
+
+        return redirect()->route('pet-owner.appointments')
+            ->with('success', 'Cancellation request submitted successfully.');
+    }
 
     /**
      * Approve cancellation request (Admin/Doctor)
@@ -483,20 +549,20 @@ class AppointmentController extends Controller
             'cancellation_status' => 'approved',
         ]);
 
-       $petOwnerUserId = $appointment->pet->owner->user_id;
-    $petName = $appointment->pet->name;
-    $date = $appointment->appointment_date->format('M d, Y');
-    
-    $this->createNotification(
-        $petOwnerUserId,
-        'cancellation_approved',
-        'Cancellation Approved',
-        "Your cancellation request for {$petName}'s appointment on {$date} has been approved.",
-        $appointment->id
-    );
+        $petOwnerUserId = $appointment->pet->owner->user_id;
+        $petName = $appointment->pet->name;
+        $date = $appointment->appointment_date->format('M d, Y');
+        
+        $this->createNotification(
+            $petOwnerUserId,
+            'cancellation_approved',
+            'Cancellation Approved',
+            "Your cancellation request for {$petName}'s appointment on {$date} has been approved.",
+            $appointment->id
+        );
 
-    return back()->with('success', 'Cancellation request approved.');
-}
+        return back()->with('success', 'Cancellation request approved.');
+    }
 
     /**
      * Decline cancellation request (Admin/Doctor)
@@ -519,20 +585,19 @@ class AppointmentController extends Controller
         $appointment->update([
             'cancellation_status' => 'declined',
         ]);
- $petOwnerUserId = $appointment->pet->owner->user_id;
-    $petName = $appointment->pet->name;
-    $date = $appointment->appointment_date->format('M d, Y');
-    
-    $this->createNotification(
-        $petOwnerUserId,
-        'cancellation_declined',
-        'Cancellation Declined',
-        "Your cancellation request for {$petName}'s appointment on {$date} has been declined.",
-        $appointment->id
-    );
 
-    return back()->with('success', 'Cancellation request declined.');
-}
+        $petOwnerUserId = $appointment->pet->owner->user_id;
+        $petName = $appointment->pet->name;
+        $date = $appointment->appointment_date->format('M d, Y');
+        
+        $this->createNotification(
+            $petOwnerUserId,
+            'cancellation_declined',
+            'Cancellation Declined',
+            "Your cancellation request for {$petName}'s appointment on {$date} has been declined.",
+            $appointment->id
+        );
 
- 
+        return back()->with('success', 'Cancellation request declined.');
+    }
 }
