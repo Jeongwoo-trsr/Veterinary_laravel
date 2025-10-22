@@ -51,6 +51,7 @@ class Notification extends Model
             'appointment_rejected' => 'fa-times-circle',
             'cancellation_approved' => 'fa-check',
             'cancellation_declined' => 'fa-ban',
+            'appointment_reminder' => 'fa-bell',
             default => 'fa-bell',
         };
     }
@@ -63,7 +64,8 @@ class Notification extends Model
             'appointment_approved' => 'green',
             'appointment_rejected' => 'red',
             'cancellation_approved' => 'green',
-            'cancellation_declined' => 'red',
+            'cancellation_declined' => 'red', 
+            'appointment_reminder' => 'yellow',
             default => 'gray',
         };
     }
