@@ -214,6 +214,9 @@
                     <i class="fas fa-cogs mr-2"></i>
                     Manage Services
                 </a>
+                <!-- <a href="{{ route('announcements.index') }}" class="nav-link">
+                 Announcements
+                </a> -->
             </div>
         </div>
     </div>
