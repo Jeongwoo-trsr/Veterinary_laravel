@@ -9,9 +9,12 @@ use App\Models\Pet;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Bill;
 use App\Models\BillItem;
+use App\Traits\SendsNotifications;
 
 class DoctorController extends Controller
 {
+    use SendsNotifications;
+
     public function __construct()
     {
         $this->middleware('role:doctor');
@@ -37,39 +40,55 @@ class DoctorController extends Controller
         return view('doctor.dashboard', compact('stats', 'recent_appointments'));
     }
 
-    public function appointments(Request $request)
-    {
-        $doctor = Auth::user()->doctor;
-        $query = $doctor->appointments()
-            ->with(['pet.owner.user', 'service'])
-            ->orderBy('appointment_date', 'desc');
 
-        // Status filter
-        if ($request->filled('status')) {
-            $status = $request->input('status');
+
+public function appointments(Request $request)
+{
+    $doctor = Auth::user()->doctor;
+    
+    // Get pending appointments separately (not paginated)
+    $pendingAppointments = $doctor->appointments()
+        ->with(['pet.owner.user', 'service'])
+        ->where('status', 'pending')
+        ->orderBy('appointment_date', 'desc')
+        ->get();
+    
+    // Main query - EXCLUDE pending appointments
+    $query = $doctor->appointments()
+        ->with(['pet.owner.user', 'service'])
+        ->where('status', '!=', 'pending')  // KEY CHANGE: Exclude pending
+        ->orderBy('appointment_date', 'desc');
+
+    // Status filter
+    if ($request->filled('status')) {
+        $status = $request->input('status');
+        if ($status === 'today') {
+            $query->whereDate('appointment_date', today());
+        } else {
             $query->where('status', $status);
         }
-
-        // Search functionality
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function($q) use ($search) {
-                $q->whereHas('pet', function($petQuery) use ($search) {
-                    $petQuery->where('name', 'like', '%' . $search . '%')
-                        ->orWhereHas('owner.user', function($ownerQuery) use ($search) {
-                            $ownerQuery->where('name', 'like', '%' . $search . '%');
-                        });
-                })
-                ->orWhereHas('service', function($serviceQuery) use ($search) {
-                    $serviceQuery->where('name', 'like', '%' . $search . '%');
-                });
-            });
-        }
-
-        $appointments = $query->paginate(15);
-        
-        return view('doctor.appointments', compact('appointments'));
     }
+
+    // Search functionality
+    if ($request->filled('search')) {
+        $search = $request->input('search');
+        $query->where(function($q) use ($search) {
+            $q->whereHas('pet', function($petQuery) use ($search) {
+                $petQuery->where('name', 'like', '%' . $search . '%')
+                    ->orWhereHas('owner.user', function($ownerQuery) use ($search) {
+                        $ownerQuery->where('name', 'like', '%' . $search . '%');
+                    });
+            })
+            ->orWhereHas('service', function($serviceQuery) use ($search) {
+                $serviceQuery->where('name', 'like', '%' . $search . '%');
+            });
+        });
+    }
+
+    $appointments = $query->paginate(15);
+    
+    return view('doctor.appointments', compact('appointments', 'pendingAppointments'));
+}
 
     public function approveAppointment(Appointment $appointment)
     {
@@ -87,7 +106,7 @@ class DoctorController extends Controller
         $date = $appointment->appointment_date->format('M d, Y');
         $time = $appointment->appointment_time;
 
-        \App\Http\Controllers\AdminController::createNotification(
+        $this->createNotification(
             $petOwnerUserId,
             'appointment_approved',
             'Appointment Approved',
@@ -108,7 +127,7 @@ class DoctorController extends Controller
         $date = $appointment->appointment_date->format('M d, Y');
         $time = $appointment->appointment_time;
 
-        \App\Http\Controllers\AdminController::createNotification(
+        $this->createNotification(
             $petOwnerUserId,
             'appointment_rejected',
             'Appointment Rejected',
@@ -195,37 +214,37 @@ class DoctorController extends Controller
         return response()->json($petData);
     }
 
-   public function medicalRecords(Request $request)
-{
-    $doctorId = auth()->user()->doctor->id;
-    
-    $query = MedicalRecord::with(['pet.owner.user', 'doctor.user', 'appointment'])
-        ->where('doctor_id', $doctorId);
+    public function medicalRecords(Request $request)
+    {
+        $doctorId = auth()->user()->doctor->id;
+        
+        $query = MedicalRecord::with(['pet.owner.user', 'doctor.user', 'appointment'])
+            ->where('doctor_id', $doctorId);
 
-    // Search functionality
-    if ($request->filled('search')) {
-        $search = $request->input('search');
-        $query->where(function($q) use ($search) {
-            $q->whereHas('pet', function($subQuery) use ($search) {
-                $subQuery->where('name', 'like', "%{$search}%");
-            })
-            ->orWhereHas('pet.owner.user', function($subQuery) use ($search) {
-                $subQuery->where('name', 'like', "%{$search}%");
-            })
-            ->orWhere('diagnosis', 'like', "%{$search}%")
-            ->orWhere('treatment', 'like', "%{$search}%");
-        });
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->whereHas('pet', function($subQuery) use ($search) {
+                    $subQuery->where('name', 'like', "%{$search}%");
+                })
+                ->orWhereHas('pet.owner.user', function($subQuery) use ($search) {
+                    $subQuery->where('name', 'like', "%{$search}%");
+                })
+                ->orWhere('diagnosis', 'like', "%{$search}%")
+                ->orWhere('treatment', 'like', "%{$search}%");
+            });
+        }
+
+        $medicalRecords = $query->orderBy('created_at', 'desc')->paginate(15);
+
+        // Handle AJAX requests for live search
+        if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return view('doctor.medical-records', compact('medicalRecords'))->render();
+        }
+
+        return view('doctor.medical-records', compact('medicalRecords'));
     }
-
-    $medicalRecords = $query->orderBy('created_at', 'desc')->paginate(15);
-
-    // Handle AJAX requests for live search
-    if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
-        return view('doctor.medical-records', compact('medicalRecords'))->render();
-    }
-
-    return view('doctor.medical-records', compact('medicalRecords'));
-}
 
     public function destroyAppointment(Appointment $appointment)
     {
