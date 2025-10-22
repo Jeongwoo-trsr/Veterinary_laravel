@@ -83,7 +83,30 @@ class User extends Authenticatable
 
     public function unreadNotifications()
     {
-    return $this->hasMany(Notification::class)->where('is_read', false);
+    return $this->notifications()->where('is_read', false);
     }
 
+    /**
+ * Get all messages sent by this user
+ */
+public function sentMessages()
+{
+    return $this->hasMany(Message::class, 'sender_id');
+}
+
+/**
+ * Get all messages received by this user
+ */
+public function receivedMessages()
+{
+    return $this->hasMany(Message::class, 'receiver_id');
+}
+
+/**
+ * Get all unread messages for this user
+ */
+public function unreadMessages()
+{
+    return $this->receivedMessages()->where('is_read', false);
+}
 }
