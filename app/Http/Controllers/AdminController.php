@@ -197,9 +197,19 @@ public function updatePetOwner(Request $request, PetOwner $petOwner)
     ]);
 }
 
-    public function appointments(Request $request)
+  
+
+public function appointments(Request $request)
 {
+    // Get pending appointments separately (not paginated)
+    $pendingAppointments = Appointment::with(['pet.owner.user', 'doctor.user', 'service'])
+        ->where('status', 'pending')
+        ->orderBy('appointment_date', 'desc')
+        ->get();
+    
+    // Main query - EXCLUDE pending appointments
     $query = Appointment::with(['pet.owner.user', 'doctor.user', 'service'])
+        ->where('status', '!=', 'pending')  // KEY CHANGE: Exclude pending
         ->orderBy('appointment_date', 'desc');
 
     // Search filter
@@ -218,7 +228,7 @@ public function updatePetOwner(Request $request, PetOwner $petOwner)
         });
     }
 
-    // Status filter (including today's appointments)
+    // Status filter
     if ($request->filled('status')) {
         $status = $request->input('status');
         if ($status === 'today') {
@@ -229,12 +239,6 @@ public function updatePetOwner(Request $request, PetOwner $petOwner)
     }
 
     $appointments = $query->paginate(15);
-    
-    // Get pending appointments separately (not paginated)
-    $pendingAppointments = Appointment::with(['pet.owner.user', 'doctor.user', 'service'])
-        ->where('status', 'pending')
-        ->orderBy('appointment_date', 'desc')
-        ->get();
     
     return view('admin.appointments', compact('appointments', 'pendingAppointments'));
 }
