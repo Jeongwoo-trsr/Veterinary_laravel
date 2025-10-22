@@ -86,9 +86,10 @@ class AppointmentController extends Controller
         ]);
 
         $user = Auth::user();
+        $userRole = $user->role; // Store role early before any operations
         
         // Verify pet ownership for pet owners
-        if ($user->role === 'pet_owner') {
+        if ($userRole === 'pet_owner') {
             $petOwner = $user->petOwner;
             $pet = Pet::where('id', $request->pet_id)
                 ->where('owner_id', $petOwner->id)
@@ -140,15 +141,43 @@ class AppointmentController extends Controller
         $petOwnerName = Auth::user()->name;
         $petName = $appointment->pet->name;
         $date = $appointment->appointment_date->format('M d, Y');
-    
-        $this->notifyAdminsAndDoctors(
+
+        // Only notify admin and other doctors (excluding the current user if they're a doctor)
+        $users = User::where(function($query) {
+            $query->where('role', 'admin')
+                ->orWhere('role', 'doctor');
+        })->where('id', '!=', Auth::id())
+        ->get();
+
+        foreach ($users as $notifyUser) {
+            $this->createNotification(
+                $notifyUser->id,
+                'appointment_request',
+                'New Appointment Request',
+                "{$petOwnerName} requested an appointment for {$petName} on {$date}",
+                $appointment->id
+            );
+        }
+
+        // Also notify the pet owner
+        $petOwnerUserId = $appointment->pet->owner->user_id;
+        $this->createNotification(
+            $petOwnerUserId,
             'appointment_request',
-            'New Appointment Request',
-            "{$petOwnerName} requested an appointment for {$petName} on {$date}",
+            'Appointment Scheduled',
+            "Your appointment for {$petName} on {$date} has been scheduled.",
             $appointment->id
         );
 
-        $redirectRoute = $user->role === 'pet_owner' ? 'pet-owner.appointments' : 'appointments.index';
+        // Determine redirect route based on stored role
+        if ($userRole === 'pet_owner') {
+            $redirectRoute = 'pet-owner.appointments';
+        } elseif ($userRole === 'doctor') {
+            $redirectRoute = 'doctor.appointments';
+        } else {
+            $redirectRoute = 'appointments.index';
+        }
+
         return redirect()->route($redirectRoute)
             ->with('success', 'Appointment request submitted successfully. Waiting for approval.');
     }
@@ -226,20 +255,31 @@ class AppointmentController extends Controller
         $oldTime = $appointment->appointment_time;
         $oldStatus = $appointment->status;
         
+        // If time is not provided, use the existing appointment time
+        if (!$request->filled('appointment_time')) {
+            $request->merge(['appointment_time' => $oldTime]);
+        }
+        
+        // If date is not provided, use the existing appointment date
+        if (!$request->filled('appointment_date')) {
+            $request->merge(['appointment_date' => $oldDate]);
+        }
+        
         $request->validate([
             'pet_id' => 'required|exists:pets,id',
             'service_id' => 'required|exists:services,id',
             'doctor_id' => 'nullable|exists:doctors,id',
-            'appointment_date' => 'nullable|date',
-            'appointment_time' => 'nullable|date_format:H:i',
+            'appointment_date' => 'required|date',
+            'appointment_time' => 'required|date_format:H:i',
             'notes' => 'nullable|string|max:1000',
             'status' => 'nullable|in:pending,scheduled,completed,cancelled',
         ]);
 
         $user = Auth::user();
+        $userRole = $user->role; // Store role early
         
         // Authorization check for pet owners
-        if ($user->role === 'pet_owner') {
+        if ($userRole === 'pet_owner') {
             $petOwner = $user->petOwner;
             
             // Verify pet ownership
@@ -259,8 +299,11 @@ class AppointmentController extends Controller
 
         $doctorId = $request->doctor_id ?? $appointment->doctor_id;
 
-        // Only validate time if date/time are being changed
-        if ($request->filled('appointment_date') && $request->filled('appointment_time')) {
+        // Only validate time conflicts if date OR time changed
+        $dateChanged = $request->appointment_date != $oldDate;
+        $timeChanged = $request->appointment_time != $oldTime;
+        
+        if ($dateChanged || $timeChanged) {
             // Validate time is between 8 AM and 6 PM
             $time = Carbon::createFromFormat('H:i', $request->appointment_time);
             if ($time->hour < 8 || $time->hour >= 18) {
@@ -284,26 +327,20 @@ class AppointmentController extends Controller
             'pet_id' => $request->pet_id,
             'doctor_id' => $doctorId,
             'service_id' => $request->service_id,
+            'appointment_date' => $request->appointment_date,
+            'appointment_time' => $request->appointment_time,
             'notes' => $request->notes,
         ];
 
-        // Only update date/time if provided
-        if ($request->filled('appointment_date')) {
-            $updateData['appointment_date'] = $request->appointment_date;
-        }
-        if ($request->filled('appointment_time')) {
-            $updateData['appointment_time'] = $request->appointment_time;
-        }
-
         // Only admin and doctor can update status
-        if (in_array($user->role, ['admin', 'doctor']) && $request->has('status')) {
+        if (in_array($userRole, ['admin', 'doctor']) && $request->has('status')) {
             $updateData['status'] = $request->status;
         }
 
         $appointment->update($updateData);
 
         // Notify pet owner if admin or doctor made changes
-        if (in_array($user->role, ['admin', 'doctor'])) {
+        if (in_array($userRole, ['admin', 'doctor'])) {
             $petOwnerUserId = $appointment->pet->owner->user_id;
             $petName = $appointment->pet->name;
             $newDate = $appointment->appointment_date->format('M d, Y');
@@ -311,10 +348,10 @@ class AppointmentController extends Controller
             
             // Build notification message based on what changed
             $changes = [];
-            if ($request->filled('appointment_date') && $request->appointment_date != $oldDate) {
+            if ($dateChanged) {
                 $changes[] = "date changed to {$newDate}";
             }
-            if ($request->filled('appointment_time') && $request->appointment_time != $oldTime) {
+            if ($timeChanged) {
                 $changes[] = "time changed to {$newTime}";
             }
             if ($request->has('status') && $request->status != $oldStatus) {
@@ -333,7 +370,15 @@ class AppointmentController extends Controller
             }
         }
 
-        $redirectRoute = $user->role === 'pet_owner' ? 'pet-owner.appointments' : 'appointments.index';
+        // Determine redirect route based on stored role
+        if ($userRole === 'pet_owner') {
+            $redirectRoute = 'pet-owner.appointments';
+        } elseif ($userRole === 'doctor') {
+            $redirectRoute = 'doctor.appointments';
+        } else {
+            $redirectRoute = 'appointments.index';
+        }
+
         return redirect()->route($redirectRoute)
             ->with('success', 'Appointment updated successfully.');
     }
@@ -344,9 +389,10 @@ class AppointmentController extends Controller
     public function destroy(Appointment $appointment)
     {
         $user = Auth::user();
+        $userRole = $user->role; // Store role early
         
         // Authorization check
-        if ($user->role === 'pet_owner') {
+        if ($userRole === 'pet_owner') {
             $petOwner = $user->petOwner;
             if ($appointment->pet->owner_id !== $petOwner->id) {
                 return back()->with('error', 'Unauthorized action.');
@@ -360,7 +406,15 @@ class AppointmentController extends Controller
         
         $appointment->delete();
         
-        $redirectRoute = $user->role === 'pet_owner' ? 'pet-owner.appointments' : 'appointments.index';
+        // Determine redirect route based on stored role
+        if ($userRole === 'pet_owner') {
+            $redirectRoute = 'pet-owner.appointments';
+        } elseif ($userRole === 'doctor') {
+            $redirectRoute = 'doctor.appointments';
+        } else {
+            $redirectRoute = 'appointments.index';
+        }
+
         return redirect()->route($redirectRoute)
             ->with('success', 'Appointment deleted successfully.');
     }
@@ -599,5 +653,79 @@ class AppointmentController extends Controller
         );
 
         return back()->with('success', 'Cancellation request declined.');
+    }
+
+    /**
+     * Mark appointment as completed
+     */
+    public function markAsCompleted(Appointment $appointment)
+    {
+        $user = Auth::user();
+        
+        // Only admin or doctor can mark as completed
+        if (!in_array($user->role, ['admin', 'doctor'])) {
+            return back()->with('error', 'Unauthorized action.');
+        }
+
+        // If doctor, check if appointment belongs to them
+        if ($user->role === 'doctor' && $appointment->doctor_id !== $user->doctor->id) {
+            return back()->with('error', 'Unauthorized action.');
+        }
+
+        $appointment->update(['status' => 'completed']);
+
+        // Notify pet owner
+        $petOwnerUserId = $appointment->pet->owner->user_id;
+        $petName = $appointment->pet->name;
+        $date = $appointment->appointment_date->format('M d, Y');
+        
+        $this->createNotification(
+            $petOwnerUserId,
+            'appointment_completed',
+            'Appointment Completed',
+            "Your appointment for {$petName} on {$date} has been marked as completed.",
+            $appointment->id
+        );
+
+        $redirectRoute = $user->role === 'doctor' ? 'doctor.appointments' : 'appointments.index';
+        return redirect()->route($redirectRoute)
+            ->with('success', 'Appointment marked as completed successfully.');
+    }
+
+    /**
+     * Mark appointment as cancelled
+     */
+    public function markAsCancelled(Appointment $appointment)
+    {
+        $user = Auth::user();
+        
+        // Only admin or doctor can cancel
+        if (!in_array($user->role, ['admin', 'doctor'])) {
+            return back()->with('error', 'Unauthorized action.');
+        }
+
+        // If doctor, check if appointment belongs to them
+        if ($user->role === 'doctor' && $appointment->doctor_id !== $user->doctor->id) {
+            return back()->with('error', 'Unauthorized action.');
+        }
+
+        $appointment->update(['status' => 'cancelled']);
+
+        // Notify pet owner
+        $petOwnerUserId = $appointment->pet->owner->user_id;
+        $petName = $appointment->pet->name;
+        $date = $appointment->appointment_date->format('M d, Y');
+        
+        $this->createNotification(
+            $petOwnerUserId,
+            'appointment_cancelled',
+            'Appointment Cancelled',
+            "Your appointment for {$petName} on {$date} has been cancelled.",
+            $appointment->id
+        );
+
+        $redirectRoute = $user->role === 'doctor' ? 'doctor.appointments' : 'appointments.index';
+        return redirect()->route($redirectRoute)
+            ->with('success', 'Appointment cancelled successfully.');
     }
 }
