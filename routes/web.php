@@ -52,7 +52,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::get('/pet-owners', [AdminController::class, 'petOwners'])->name('pet-owners');
         Route::post('/pet-owners/store', [AdminController::class, 'storePetOwner'])->name('pet-owners.store');        
-        Route::get('/pet-owners/{petOwner}', [AdminController::class, 'showPetOwner'])->name('pet-owners.show');
+        Route::get('/pet-owners/{petOwner}', [AdminController::class, 'show'])->name('pet-owners.show');
         Route::get('/pet-owners/{petOwner}/edit', [AdminController::class, 'editPetOwner'])->name('pet-owners.edit');
         Route::put('/pet-owners/{petOwner}', [AdminController::class, 'updatePetOwner'])->name('pet-owners.update');
         Route::get('/pets', [AdminController::class, 'pets'])->name('pets');
@@ -87,6 +87,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:doctor')->prefix('doctor')->name('doctor.')->group(function () {
         Route::get('/dashboard', [DoctorController::class, 'dashboard'])->name('dashboard');
         Route::get('/appointments', [DoctorController::class, 'appointments'])->name('appointments');
+        Route::get('/appointments/create', [AppointmentController::class, 'create'])->name('appointments.create');
+        Route::post('/appointments', [AppointmentController::class, 'store'])->name('appointments.store'); 
         Route::post('/appointments/{appointment}/approve', [DoctorController::class, 'approveAppointment'])->name('appointments.approve');
         Route::post('/appointments/{appointment}/reject', [DoctorController::class, 'rejectAppointment'])->name('appointments.reject');
         
@@ -135,39 +137,53 @@ Route::middleware('auth')->group(function () {
             
             // Pet owner cancellation request route  
             // Delete pet
+             Route::get('/clinic-details', [PetOwnerController::class, 'clinicDetails'])->name('clinic-details');
             Route::delete('/pets/{pet}', [PetOwnerController::class, 'destroyPet'])->name('pets.destroy');
             Route::delete('/appointments/{appointment}', [PetOwnerController::class, 'destroyAppointment'])->name('appointments.destroy');
         });
 
-
+        // Message routes (accessible by all authenticated users)
+    Route::prefix('messages')->name('messages.')->group(function() {
+    Route::get('/inbox', [\App\Http\Controllers\MessageController::class, 'inbox'])->name('inbox');
+    Route::get('/sent', [\App\Http\Controllers\MessageController::class, 'sent'])->name('sent');
+    Route::get('/create', [\App\Http\Controllers\MessageController::class, 'create'])->name('create');
+    Route::post('/store', [\App\Http\Controllers\MessageController::class, 'store'])->name('store');
+    Route::get('/{message}', [\App\Http\Controllers\MessageController::class, 'show'])->name('show');
+    Route::post('/mark-read', [\App\Http\Controllers\MessageController::class, 'markAsRead'])->name('mark-read');
+    Route::post('/mark-unread', [\App\Http\Controllers\MessageController::class, 'markAsUnread'])->name('mark-unread');
+    Route::delete('/destroy', [\App\Http\Controllers\MessageController::class, 'destroy'])->name('destroy');
+    Route::get('/api/unread-count', [\App\Http\Controllers\MessageController::class, 'getUnreadCount'])->name('unread-count');
+});
     
-    // Notification routes
+   // Notification routes
     Route::middleware('auth')->group(function () {
-        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
-        Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
-        Route::get('/notifications/unread-count', [NotificationController::class, 'getUnreadCount'])->name('notifications.unread-count');
-    });
+            Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+            Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+            Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+            Route::get('/notifications/unread-count', [\App\Http\Controllers\NotificationController::class, 'getUnreadCount'])->name('notifications.unread-count');
+        });
 
     Route::middleware('auth')->get('/api/notifications', function() {
-        $notifications = Auth::user()->notifications()->limit(10)->get();
-        $unreadCount = Auth::user()->unreadNotifications()->count();
-        
-        return response()->json([
-            'notifications' => $notifications->map(function($notif) {
-                return [
-                    'id' => $notif->id,
-                    'title' => $notif->title,
-                    'message' => $notif->message,
-                    'icon' => $notif->icon,
-                    'color' => $notif->color,
-                    'is_read' => $notif->is_read,
-                    'time_ago' => $notif->created_at->diffForHumans(),
-                ];
-            }),
-            'unread_count' => $unreadCount,
-        ]);
-    });
+            $notifications = Auth::user()->notifications()->orderBy('created_at', 'desc')->limit(10)->get();
+            $unreadCount = Auth::user()->unreadNotifications()->count();
+    
+    return response()->json([
+        'notifications' => $notifications->map(function($notif) {
+            return [
+                'id' => $notif->id,
+                'title' => $notif->title,
+                'message' => $notif->message,
+                'icon' => $notif->icon,
+                'color' => $notif->color,
+                'is_read' => $notif->is_read,
+                'time_ago' => $notif->created_at->diffForHumans(),
+                'appointment_id' => $notif->appointment_id, // Add this
+                'url' => route('notifications.read', $notif->id), // Add this
+            ];
+        }),
+        'unread_count' => $unreadCount,
+    ]);
+});
 
     // Common resource routes
     Route::resource('pets', PetController::class);
@@ -194,5 +210,21 @@ Route::middleware('auth')->group(function () {
     Route::post('/medical-records/{medicalRecord}/upload-document', [MedicalRecordController::class, 'uploadDocument'])->name('medical-records.upload-document');
     Route::get('/documents/{documentId}/download', [MedicalRecordController::class, 'downloadDocument'])->name('documents.download');
 
+    // Mark appointment status routes (Admin/Doctor only)
+    Route::middleware(['auth', 'role:admin,doctor'])->group(function () {
+    Route::put('/appointments/{appointment}/mark-completed', [AppointmentController::class, 'markAsCompleted'])->name('appointments.mark-completed');
+    Route::put('/appointments/{appointment}/mark-cancelled', [AppointmentController::class, 'markAsCancelled'])->name('appointments.mark-cancelled');
+
+
+
+// Announcement routes (Admin and Doctor only)
+    Route::middleware(['auth', 'role:admin,doctor'])->group(function () {
+    Route::resource('announcements', \App\Http\Controllers\AnnouncementController::class);
+    Route::post('/announcements/{announcement}/toggle-status', [\App\Http\Controllers\AnnouncementController::class, 'toggleStatus'])->name('announcements.toggle-status');
+});
+
+// API endpoint for active announcements (accessible by all authenticated users)
+    Route::middleware('auth')->get('/api/announcements/active', [\App\Http\Controllers\AnnouncementController::class, 'getActive'])->name('announcements.active');
+});
     
 });
