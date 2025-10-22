@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Pet;
+use App\Models\PetOwner;
 use App\Models\Doctor;
 use App\Models\Service;
 use App\Models\Appointment;
@@ -151,6 +152,9 @@ class PetController extends Controller
         return response()->json($timeSlots);
     }
 
+
+    
+
     // List pets with optional search
    // Replace the index method in PetController.php
 
@@ -235,24 +239,42 @@ public function index(Request $request)
         }
     }
 
-    // Add missing store method to handle resource route POST /pets
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'owner_id' => 'required|exists:pet_owners,id',
-            'name' => 'required|string|max:255',
-            'species' => 'required|string|max:255',
-            'breed' => 'nullable|string|max:255',
-            'age' => 'nullable|integer|min:0|max:30',
-            'weight' => 'nullable|numeric|min:0',
-            'color' => 'nullable|string|max:255',
-            'gender' => 'nullable|in:male,female',
-            'medical_notes' => 'nullable|string',
-        ]);
-
-        $pet = Pet::create($validated);
-
-        return redirect()->route('pets.index')
-            ->with('success', 'Pet created successfully.');
+    public function create()
+{
+    // Only admins and doctors can add pets
+    if (!in_array(Auth::user()->role, ['admin', 'doctor'])) {
+        abort(403, 'Unauthorized action.');
     }
+    
+    // Get all pet owners for the dropdown
+    $petOwners = PetOwner::with('user')->get();
+    return view('pets.create', compact('petOwners'));
+}
+
+    // Add missing store method to handle resource route POST /pets
+  public function store(Request $request)
+{
+    // Only admins and doctors can add pets
+    if (!in_array(Auth::user()->role, ['admin', 'doctor'])) {
+        abort(403, 'Unauthorized action.');
+    }
+    
+    $validated = $request->validate([
+        'owner_id' => 'required|exists:pet_owners,id',
+        'name' => 'required|string|max:255',
+        'species' => 'required|string|max:255',
+        'breed' => 'nullable|string|max:255',
+        'age' => 'nullable|integer|min:0|max:30',
+        'weight' => 'nullable|numeric|min:0',
+        'color' => 'nullable|string|max:255',
+        'gender' => 'nullable|in:male,female',
+        'microchip_id' => 'nullable|string|max:255',
+        'medical_notes' => 'nullable|string',
+    ]);
+
+    $pet = Pet::create($validated);
+
+    return redirect()->route('admin.pets')
+        ->with('success', 'Pet added successfully.');
+}
 }
