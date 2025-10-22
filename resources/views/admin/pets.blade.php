@@ -5,18 +5,23 @@
 @section('content')
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Manage Pets</h1>
-            <p class="text-gray-600">View and manage all pets in the system</p>
-        </div>
+   <div class="flex justify-between items-center mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Manage Pets</h1>
+        <p class="text-gray-600">View and manage all pets in the system</p>
     </div>
+   
+    <a href="{{ route('pets.create') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+        <i class="fas fa-plus mr-2"></i>
+        Add New Pet
+    </a>
+</div>
 
     <!-- Search and Filter -->
     <div class="mb-4 flex items-center justify-between gap-4">
         <div>
-            <select id="speciesFilter" class="bg-yellow-300 hover:bg-yellow-400 text-gray-800 px-4 py-2 rounded font-semibold cursor-pointer border-0">
-                <option value="">All Species</option>
+            <select id="speciesFilter" class="px-4 py-2 bg-yellow-300 text-gray-900 font-bold rounded-lg cursor-pointer hover:bg-yellow-400 transition text-sm border-0">
+                <option value="">All Species</option> 
                 <option value="dog" {{ request('species') == 'dog' ? 'selected' : '' }}>Dog</option>
                 <option value="cat" {{ request('species') == 'cat' ? 'selected' : '' }}>Cat</option>
                 <option value="bird" {{ request('species') == 'bird' ? 'selected' : '' }}>Bird</option>
@@ -58,9 +63,9 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-10 w-10 mr-4">
-                                        <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <!-- <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                                             <i class="fas fa-paw text-blue-600"></i>
-                                        </div>
+                                        </div> -->
                                     </div>
                                     <div>
                                         <div class="text-sm font-medium text-gray-900">{{ $pet->name }}</div>
@@ -73,20 +78,20 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $pet->owner->user->name ?? 'No Owner' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-600">{{ $pet->age ? $pet->age . ' yrs' : 'N/A' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div class="flex gap-2">
+                                <div class="flex gap-4">
                                     <a href="{{ route('pets.show', $pet->id) }}" class="text-blue-600 hover:text-blue-900" title="View">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     <a href="{{ route('pets.edit', $pet->id) }}" class="text-green-600 hover:text-green-900" title="Edit">
                                         <i class="fas fa-edit"></i>
-                                    </a>
+                                    <!-- </a>
                                     <form action="{{ route('admin.pets.destroy', $pet->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this pet?')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="text-red-600 hover:text-red-900" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
-                                    </form>
+                                    </form> -->
                                 </div>
                             </td>
                         </tr>
@@ -189,3 +194,28 @@
     }
 </style>
 @endsection
+
+
+<style>
+    #speciesFilter {
+        background-color: #FCD34D;
+        color: #111827;
+        font-weight: bold;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        background-size: 20px;
+        padding-right: 32px;
+    }
+    
+    #speciesFilter:hover {
+        background-color: #FBBF24;
+    }
+
+    .hover\:bg-gray-50:hover {
+        background-color: rgba(249, 250, 251, 1);
+    }
+</style>
