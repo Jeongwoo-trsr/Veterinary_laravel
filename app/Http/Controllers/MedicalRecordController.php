@@ -14,89 +14,100 @@ use Illuminate\Support\Facades\Storage;
 
 class MedicalRecordController extends Controller
 {
-   public function index(Request $request)
-{
-    $user = Auth::user();
-    $query = MedicalRecord::query();
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+        $query = MedicalRecord::query();
 
-    // Load relationships
-    $query->with(['pet.owner.user', 'doctor.user', 'appointment']);
+        // Load relationships
+        $query->with(['pet.owner.user', 'doctor.user', 'appointment']);
 
-    if ($user->isAdmin()) {
-        // Admin sees all records
-        $query = $query;
-    } elseif ($user->isDoctor()) {
-        // Doctor sees only their records
-        $doctor = $user->doctor;
-        $query->where('doctor_id', $doctor->id);
-    } elseif ($user->isPetOwner()) {
-        // Pet owner sees only their pets' records
-        $petOwner = $user->petOwner;
-        $query->whereHas('pet', function($q) use ($petOwner) {
-            $q->where('owner_id', $petOwner->id);
-        });
-    } else {
-        abort(403, 'Unauthorized access.');
-    }
+        if ($user->isAdmin()) {
+            // Admin sees all records
+            $query = $query;
+        } elseif ($user->isDoctor()) {
+            // Doctor sees only their records
+            $doctor = $user->doctor;
+            $query->where('doctor_id', $doctor->id);
+        } elseif ($user->isPetOwner()) {
+            // Pet owner sees only their pets' records
+            $petOwner = $user->petOwner;
+            $query->whereHas('pet', function($q) use ($petOwner) {
+                $q->where('owner_id', $petOwner->id);
+            });
+        } else {
+            abort(403, 'Unauthorized access.');
+        }
 
-    // Search functionality
-    if ($request->filled('search')) {
-        $search = $request->input('search');
-        $query->where(function($q) use ($search) {
-            $q->whereHas('pet', function($subQuery) use ($search) {
-                $subQuery->where('name', 'like', "%{$search}%");
-            })
-            ->orWhereHas('pet.owner.user', function($subQuery) use ($search) {
-                $subQuery->where('name', 'like', "%{$search}%");
-            })
-            ->orWhereHas('doctor.user', function($subQuery) use ($search) {
-                $subQuery->where('name', 'like', "%{$search}%");
-            })
-            ->orWhere('diagnosis', 'like', "%{$search}%")
-            ->orWhere('treatment', 'like', "%{$search}%");
-        });
-    }
-
-    // Status filter
-    if ($request->filled('status')) {
-        $status = $request->input('status');
-        if ($status === 'follow-up') {
-            $query->whereNotNull('follow_up_date')
-                ->where('follow_up_date', '>=', now()->toDateString());
-        } elseif ($status === 'resolved') {
-            $query->where(function($q) {
-                $q->whereNull('follow_up_date')
-                    ->orWhere('follow_up_date', '<', now()->toDateString());
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->whereHas('pet', function($subQuery) use ($search) {
+                    $subQuery->where('name', 'like', "%{$search}%");
+                })
+                ->orWhereHas('pet.owner.user', function($subQuery) use ($search) {
+                    $subQuery->where('name', 'like', "%{$search}%");
+                })
+                ->orWhereHas('doctor.user', function($subQuery) use ($search) {
+                    $subQuery->where('name', 'like', "%{$search}%");
+                })
+                ->orWhere('diagnosis', 'like', "%{$search}%")
+                ->orWhere('treatment', 'like', "%{$search}%");
             });
         }
+
+        // Status filter
+        if ($request->filled('status')) {
+            $status = $request->input('status');
+            if ($status === 'follow-up') {
+                $query->whereNotNull('follow_up_date')
+                    ->where('follow_up_date', '>=', now()->toDateString());
+            } elseif ($status === 'resolved') {
+                $query->where(function($q) {
+                    $q->whereNull('follow_up_date')
+                        ->orWhere('follow_up_date', '<', now()->toDateString());
+                });
+            }
+        }
+
+        // Sorting
+        $sort = $request->input('sort', 'recent');
+        if ($sort === 'oldest') {
+            $query->orderBy('created_at', 'asc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $medicalRecords = $query->paginate(15);
+
+        // Handle AJAX requests for live search
+        if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            // Return appropriate view based on user role
+            if ($user->isAdmin()) {
+                return view('admin.medical-records', compact('medicalRecords'))->render();
+            }
+            return view('medical-records.index', compact('medicalRecords'))->render();
+        }
+
+        // Return appropriate view based on user role
+        if ($user->isAdmin()) {
+            return view('admin.medical-records', compact('medicalRecords'));
+        }
+        
+        return view('medical-records.index', compact('medicalRecords'));
     }
-
-    // Sorting
-    $sort = $request->input('sort', 'recent');
-    if ($sort === 'oldest') {
-        $query->orderBy('created_at', 'asc');
-    } else {
-        $query->orderBy('created_at', 'desc');
-    }
-
-    $medicalRecords = $query->paginate(15);
-
-    // Handle AJAX requests for live search
-    if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
-        return view('medical-records.index', compact('medicalRecords'))->render();
-    }
-
-    return view('medical-records.index', compact('medicalRecords'));
-}
 
     public function create()
     {
         $user = Auth::user();
         
+        // Prevent admins from creating medical records
         if ($user->isAdmin()) {
-            $pets = Pet::with('owner.user')->get();
-            $doctors = Doctor::with('user')->get();
-        } elseif ($user->isDoctor()) {
+            abort(403, 'Admins cannot create medical records. Only doctors can create medical records.');
+        }
+        
+        if ($user->isDoctor()) {
             $doctor = $user->doctor;
             $pets = Pet::with('owner.user')->get();
             $doctors = Doctor::where('id', $doctor->id)->with('user')->get();
@@ -117,6 +128,11 @@ class MedicalRecordController extends Controller
 
     public function store(Request $request)
     {
+        // Prevent admins from creating medical records
+        if (Auth::user()->isAdmin()) {
+            return redirect()->back()->with('error', 'Admins cannot create medical records. Only doctors can create medical records.');
+        }
+
         $request->validate([
             'pet_id' => 'required|exists:pets,id',
             'doctor_id' => 'required|exists:doctors,id',
@@ -155,6 +171,12 @@ class MedicalRecordController extends Controller
             ]);
         }
 
+        // Redirect based on user role
+        $user = Auth::user();
+        if ($user->isDoctor()) {
+            return redirect()->route('doctor.medical-records')->with('success', 'Medical record created successfully.');
+        }
+        
         return redirect()->route('medical-records.index')->with('success', 'Medical record created successfully.');
     }
 
@@ -176,6 +198,11 @@ class MedicalRecordController extends Controller
     {
         $user = Auth::user();
 
+        // Prevent admins from editing medical records
+        if ($user->isAdmin()) {
+            abort(403, 'Admins cannot edit medical records. Only doctors can edit medical records.');
+        }
+
         // Authorization check
         if ($user->isDoctor() && $medicalRecord->doctor_id !== $user->doctor->id) {
             abort(403, 'You are not authorized to edit this record.');
@@ -196,6 +223,11 @@ class MedicalRecordController extends Controller
 
     public function update(Request $request, MedicalRecord $medicalRecord)
     {
+        // Prevent admins from updating medical records
+        if (Auth::user()->isAdmin()) {
+            return redirect()->back()->with('error', 'Admins cannot update medical records. Only doctors can update medical records.');
+        }
+
         $request->validate([
             'pet_id' => 'required|exists:pets,id',
             'doctor_id' => 'required|exists:doctors,id',
@@ -231,6 +263,11 @@ class MedicalRecordController extends Controller
 
     public function destroy(MedicalRecord $medicalRecord)
     {
+        // Prevent admins from deleting medical records
+        if (Auth::user()->isAdmin()) {
+            return redirect()->back()->with('error', 'Admins cannot delete medical records. Only doctors can delete medical records.');
+        }
+
         $medicalRecord->delete();
         return redirect()->route('medical-records.index')->with('success', 'Medical record deleted successfully.');
     }
