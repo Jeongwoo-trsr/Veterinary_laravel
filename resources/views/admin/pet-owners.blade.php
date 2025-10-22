@@ -77,13 +77,13 @@
                             <a href="{{ route('admin.pet-owners.edit', $owner->id) }}" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <form action="{{ route('admin.pet-owners.destroy', $owner->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this pet owner? This will also delete their pets.');" class="inline">
+                            <!-- <form action="{{ route('admin.pet-owners.destroy', $owner->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this pet owner? This will also delete their pets.');" class="inline">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" title="Delete">
                                     <i class="fas fa-trash"></i>
                                 </button>
-                            </form>
+                            </form> -->
                         </div>
                     </td>
                 </tr>
