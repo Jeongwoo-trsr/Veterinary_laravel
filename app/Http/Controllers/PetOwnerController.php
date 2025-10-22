@@ -9,6 +9,9 @@ use App\Models\MedicalRecord;
 use App\Models\Service;
 use App\Models\Doctor;
 use App\Models\Bill;
+use App\Models\Notification;
+use App\Models\User;
+use App\Models\Announcement;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -20,38 +23,43 @@ class PetOwnerController extends Controller
     }
 
     public function dashboard()
-    {
-        $petOwner = Auth::user()->petOwner;
-        
-        // Calculate statistics
-        $totalMedicalRecords = MedicalRecord::whereHas('pet', function ($q) use ($petOwner) {
+{
+    $petOwner = Auth::user()->petOwner;
+    
+    // Calculate statistics
+    $totalMedicalRecords = MedicalRecord::whereHas('pet', function ($q) use ($petOwner) {
+        $q->where('owner_id', $petOwner->id);
+    })->count();
+    
+    $stats = [
+        'total_pets' => $petOwner->pets()->count(),
+        'upcoming_appointments' => Appointment::whereHas('pet', function ($q) use ($petOwner) {
             $q->where('owner_id', $petOwner->id);
-        })->count();
-        
-        $stats = [
-            'total_pets' => $petOwner->pets()->count(),
-            'upcoming_appointments' => Appointment::whereHas('pet', function ($q) use ($petOwner) {
-                $q->where('owner_id', $petOwner->id);
-            })->where('status', 'scheduled')->count(),
-            'total_appointments' => Appointment::whereHas('pet', function ($q) use ($petOwner) {
-                $q->where('owner_id', $petOwner->id);
-            })->count(),
-            'medical_records' => $totalMedicalRecords,
-            'total_medical_records' => $totalMedicalRecords,
-        ];
+        })->where('status', 'scheduled')->count(),
+        'total_appointments' => Appointment::whereHas('pet', function ($q) use ($petOwner) {
+            $q->where('owner_id', $petOwner->id);
+        })->count(),
+        'medical_records' => $totalMedicalRecords,
+        'total_medical_records' => $totalMedicalRecords,
+    ];
 
-        $recent_appointments = Appointment::whereHas('pet', function ($q) use ($petOwner) {
-            $q->where('owner_id', $petOwner->id);
-        })
-        ->with(['pet', 'doctor.user', 'service'])
-        ->orderBy('appointment_date', 'desc')
+    $recent_appointments = Appointment::whereHas('pet', function ($q) use ($petOwner) {
+        $q->where('owner_id', $petOwner->id);
+    })
+    ->with(['pet', 'doctor.user', 'service'])
+    ->orderBy('appointment_date', 'desc')
+    ->limit(5)
+    ->get();
+
+    // Get latest 5 announcements
+    $announcements = Announcement::with('creator')
+        ->orderBy('created_at', 'desc')
         ->limit(5)
         ->get();
 
-        $pets = $petOwner->pets()->get();
+    return view('pet-owner.dashboard', compact('stats', 'recent_appointments', 'announcements'));
+}
 
-        return view('pet-owner.dashboard', compact('stats', 'recent_appointments', 'pets'));
-    }
 
     public function pets()
     {
@@ -145,9 +153,6 @@ class PetOwnerController extends Controller
             return back()->withErrors(['appointment_time' => 'This time slot is already booked. Please select another time.']);
         }
 
-        // Ensure pet exists
-        $pet = \App\Models\Pet::find($request->pet_id);
-
         // Create appointment
         $appointment = Appointment::create([
             'pet_id' => $request->pet_id,
@@ -159,31 +164,19 @@ class PetOwnerController extends Controller
             'notes' => $request->notes,
         ]);
 
-        // Notify all admins
-        $admins = \App\Models\User::where('role', 'admin')->get();
-        foreach ($admins as $admin) {
-            \App\Http\Controllers\AdminController::createNotification(
-                $admin->id,
-                'appointment_request',
-                'New appointment request',
-                "New appointment request for {$pet->name} on {$appointment->appointment_date} at {$appointment->appointment_time}.",
-                $appointment->id
-            );
-        }
+        // Prepare notification message
+        $petOwnerName = Auth::user()->name;
+        $petName = $pet->name;
+        $date = Carbon::parse($appointment->appointment_date)->format('M d, Y');
+        $time = $appointment->appointment_time;
 
-        // Notify all doctors (by user id)
-        $doctors = \App\Models\Doctor::with('user')->get();
-        foreach ($doctors as $doc) {
-            if ($doc->user) {
-                \App\Http\Controllers\AdminController::createNotification(
-                    $doc->user->id,
-                    'appointment_request',
-                    'New appointment request',
-                    "New appointment request for {$pet->name} on {$appointment->appointment_date} at {$appointment->appointment_time}.",
-                    $appointment->id
-                );
-            }
-        }
+        // Notify all admins and doctors
+        $this->notifyAdminsAndDoctors(
+            'appointment_request',
+            'New Appointment Request',
+            "{$petOwnerName} requested an appointment for {$petName} on {$date} at {$time}.",
+            $appointment->id
+        );
 
         return redirect()->route('pet-owner.appointments')
             ->with('success', 'Appointment request submitted successfully. Waiting for approval.');
@@ -297,4 +290,35 @@ class PetOwnerController extends Controller
 
         return redirect()->route('pet-owner.appointments')->with('success', 'Appointment deleted successfully.');
     }
+
+    /**
+     * Create a notification for a specific user
+     */
+    private function createNotification($userId, $type, $title, $message, $appointmentId = null)
+    {
+        Notification::create([
+            'user_id' => $userId,
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'appointment_id' => $appointmentId,
+        ]);
+    }
+
+    /**
+     * Notify all admins and doctors
+     */
+    private function notifyAdminsAndDoctors($type, $title, $message, $appointmentId = null)
+    {
+        $users = User::whereIn('role', ['admin', 'doctor'])->get();
+        
+        foreach ($users as $user) {
+            $this->createNotification($user->id, $type, $title, $message, $appointmentId);
+        }
+    }
+
+    public function clinicDetails()
+{
+    return view('pet-owner.clinic-details');
+}
 }
