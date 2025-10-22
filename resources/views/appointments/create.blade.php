@@ -229,7 +229,11 @@
             <h2 class="text-2xl font-bold text-gray-800">Schedule an Appointment</h2>
             <p class="text-sm text-gray-600 mt-1">Fill in the details below to book an appointment</p>
         </div>
-        <a href="{{ route('appointments.index') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400" style="text-decoration: none;">
+        @php
+            $backRoute = Auth::user()->role === 'doctor' ? 'doctor.appointments' : 
+                        (Auth::user()->role === 'pet_owner' ? 'pet-owner.appointments' : 'admin.appointments');
+        @endphp
+        <a href="{{ route($backRoute) }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400" style="text-decoration: none;">
             <i class="fas fa-arrow-left mr-2"></i>Back
         </a>
     </div>
@@ -346,7 +350,7 @@
 
         <!-- Submit Buttons -->
         <div class="flex justify-end gap-3" style="padding-top: 20px; border-top: 1px solid #e5e7eb;">
-            <a href="{{ route('appointments.index') }}" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400" style="text-decoration: none;">
+            <a href="{{ route($backRoute) }}" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400" style="text-decoration: none;">
                 <i class="fas fa-times mr-2"></i>Cancel
             </a>
             <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
