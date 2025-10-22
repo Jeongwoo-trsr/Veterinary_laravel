@@ -12,6 +12,7 @@ class InventoryController extends Controller
     {
         $user = Auth::user();
         $search = $request->input('search', '');
+        $category = $request->input('category', '');
 
         if (!$user->isAdmin()) {
             abort(403, 'Unauthorized access.');
@@ -28,10 +29,18 @@ class InventoryController extends Controller
             });
         }
 
+        // Apply category filter
+        if (!empty($category)) {
+            $query->where('category', $category);
+        }
+
         // Get all items with pagination
         $items = $query->orderBy('created_at', 'desc')
                        ->paginate(15)
-                       ->appends(['search' => $search]);
+                       ->appends([
+                           'search' => $search,
+                           'category' => $category
+                       ]);
 
         // Calculate statistics
         $totalItems = InventoryItem::count();
@@ -42,13 +51,18 @@ class InventoryController extends Controller
                                     ->limit(4)
                                     ->get();
 
+        // Get all categories for filter dropdown
+        $categories = ['Medicine', 'Consumables', 'Equipment', 'Pet Food'];
+
         return view('admin.inventory', compact(
             'items',
             'totalItems',
             'lowStockCount',
             'expiredCount',
             'topUsedItems',
-            'search'
+            'search',
+            'category',
+            'categories'
         ));
     }
 
@@ -130,7 +144,4 @@ class InventoryController extends Controller
 
         return redirect()->route('inventory.index')->with('success', 'Stock adjusted successfully.');
     }
-    
-    
-    
 }
