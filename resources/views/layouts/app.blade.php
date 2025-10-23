@@ -37,7 +37,6 @@
                             <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
                                 {{ ucfirst(Auth::user()->role) }}
                             </span>
-                            <!-- Add this to your navbar in layouts/app.blade.php, before the logout button -->
 
 <style>
 .notification-bell {
@@ -139,7 +138,7 @@
         <div id="notificationList">
             <div style="padding: 40px; text-align: center; color: #9ca3af;">
                 <i class="fas fa-bell-slash" style="font-size: 40px; margin-bottom: 12px;"></i>
-                <p>No notifications</p>
+                <p>Loading...</p>
             </div>
         </div>
         
@@ -161,7 +160,7 @@ notificationBell.addEventListener('click', function(e) {
     e.stopPropagation();
     notificationDropdown.classList.toggle('show');
     if (notificationDropdown.classList.contains('show')) {
-        loadNotifications();
+        loadNotificationsAPI();
     }
 });
 
@@ -172,24 +171,15 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Load notifications
-function loadNotifications() {
-    fetch('{{ route("notifications.index") }}')
-        .then(response => response.text())
-        .then(html => {
-            // Extract notifications from the full page HTML
-            // For simplicity, we'll create a separate API endpoint
-            loadNotificationsAPI();
-        });
-}
-
 function loadNotificationsAPI() {
-    // We'll create this endpoint
     fetch('/api/notifications')
         .then(response => response.json())
         .then(data => {
             displayNotifications(data.notifications);
             updateBadge(data.unread_count);
+        })
+        .catch(error => {
+            console.error('Error loading notifications:', error);
         });
 }
 
@@ -207,25 +197,28 @@ function displayNotifications(notifications) {
     }
     
     listContainer.innerHTML = notifications.map(notif => `
-        <div class="notification-item ${!notif.is_read ? 'unread' : ''}" onclick="markAsRead(${notif.id})">
-            <div style="display: flex; gap: 12px;">
-                <div class="notification-icon icon-${notif.color}">
-                    <i class="fas ${notif.icon}"></i>
+        <form method="POST" action="/notifications/${notif.id}/read" style="margin: 0;">
+            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+            <button type="submit" class="notification-item ${!notif.is_read ? 'unread' : ''}" style="width: 100%; text-align: left; background: none; border: none; padding: 12px 16px;">
+                <div style="display: flex; gap: 12px;">
+                    <div class="notification-icon icon-${notif.color}">
+                        <i class="fas ${notif.icon}"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; font-size: 14px; color: #111827; margin-bottom: 4px;">
+                            ${notif.title}
+                        </div>
+                        <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">
+                            ${notif.message}
+                        </div>
+                        <div style="font-size: 11px; color: #9ca3af;">
+                            ${notif.time_ago}
+                        </div>
+                    </div>
+                    ${!notif.is_read ? '<div style="width: 8px; height: 8px; background: #2563eb; border-radius: 50%;"></div>' : ''}
                 </div>
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; font-size: 14px; color: #111827; margin-bottom: 4px;">
-                        ${notif.title}
-                    </div>
-                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">
-                        ${notif.message}
-                    </div>
-                    <div style="font-size: 11px; color: #9ca3af;">
-                        ${notif.time_ago}
-                    </div>
-                </div>
-                ${!notif.is_read ? '<div style="width: 8px; height: 8px; background: #2563eb; border-radius: 50%;"></div>' : ''}
-            </div>
-        </div>
+            </button>
+        </form>
     `).join('');
 }
 
@@ -239,21 +232,24 @@ function updateBadge(count) {
 }
 
 function markAsRead(notificationId) {
-    fetch(`/notifications/${notificationId}/read`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json',
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.redirect) {
-            window.location.href = data.redirect;
-        } else {
-            loadNotificationsAPI();
-        }
-    });
+    // Close the dropdown first
+    notificationDropdown.classList.remove('show');
+    
+    // Create a form and submit it as POST
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/notifications/${notificationId}/read`;
+    
+    // Add CSRF token
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = '_token';
+    csrfInput.value = '{{ csrf_token() }}';
+    form.appendChild(csrfInput);
+    
+    // Add to body and submit
+    document.body.appendChild(form);
+    form.submit();
 }
 
 function markAllAsRead() {
@@ -262,10 +258,14 @@ function markAllAsRead() {
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
         },
     })
     .then(() => {
         loadNotificationsAPI();
+    })
+    .catch(error => {
+        console.error('Error marking all as read:', error);
     });
 }
 
@@ -275,6 +275,7 @@ setInterval(loadNotificationsAPI, 30000);
 // Load on page load
 document.addEventListener('DOMContentLoaded', loadNotificationsAPI);
 </script>
+
                             <form method="POST" action="{{ route('logout') }}" class="inline">
                                 @csrf
                                 <button type="submit" class="text-gray-600 hover:text-gray-900">
@@ -306,10 +307,6 @@ document.addEventListener('DOMContentLoaded', loadNotificationsAPI);
                                 <i class="fas fa-paw mr-3"></i>
                                 Pets
                             </a>
-                            <!-- <a href="{{ route('admin.doctors') }}" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100">
-                                <i class="fas fa-user-md mr-3"></i>
-                                Doctors
-                            </a> -->
                             <a href="{{ route('admin.appointments') }}" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100">
                                 <i class="fas fa-calendar-alt mr-3"></i>
                                 Appointments
@@ -330,6 +327,20 @@ document.addEventListener('DOMContentLoaded', loadNotificationsAPI);
                                 <i class="fas fa-chart-bar mr-3"></i>
                                 Reports
                             </a>
+                             <a href="{{ route('messages.inbox') }}" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100">
+        <i class="fas fa-envelope mr-3"></i>
+        Messages
+        @php
+            $unreadCount = Auth::user()->unreadMessages()->count();
+        @endphp
+        @if($unreadCount > 0)
+            <span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">{{ $unreadCount }}</span>
+        @endif
+    </a>
+    <a href="{{ route('announcements.index') }}" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100">
+    <i class="fas fa-bullhorn mr-3"></i>
+    Announcements
+</a>
 
 
                         @elseif(Auth::user()->isPetOwner())
@@ -345,10 +356,6 @@ document.addEventListener('DOMContentLoaded', loadNotificationsAPI);
                                 <i class="fas fa-calendar-alt mr-3"></i>
                                 My Appointments
                             </a>
-                            <!-- <a href="{{ route('pet-owner.appointments.create') }}" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100">
-                                <i class="fas fa-plus mr-3"></i>
-                                Schedule Appointment
-                            </a> -->
                             <a href="{{ route('pet-owner.medical-records') }}" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100">
                                 <i class="fas fa-file-medical mr-3"></i>
                                 Medical Records
@@ -357,6 +364,22 @@ document.addEventListener('DOMContentLoaded', loadNotificationsAPI);
                                 <i class="fas fa-file-medical mr-3"></i>
                                 Bills
                             </a>
+                            
+                            <a href="{{ route('pet-owner.clinic-details') }}" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100">
+                               <i class="fas fa-hospital mr-3"></i>
+                                  Clinic Details
+                          </a>
+                            <a href="{{ route('messages.inbox') }}" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100">
+                               <i class="fas fa-envelope mr-3"></i>
+                                  Messages
+                                  @php
+                         $unreadCount = Auth::user()->unreadMessages()->count();
+                    @endphp
+                 @if($unreadCount > 0)
+                 <span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">{{ $unreadCount }}</span>
+                @endif
+                </a>
+    
 
 
                         @elseif(Auth::user()->isDoctor())
@@ -376,14 +399,27 @@ document.addEventListener('DOMContentLoaded', loadNotificationsAPI);
                                 <i class="fas fa-users mr-3"></i>
                                 Patients
                             </a>
-
                              <a href="{{ route('doctor.bills') }}" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100">
                                 <i class="fas fa-dollar-sign mr-3"></i>
                                 Billing
                             </a>
+                            <a href="{{ route('messages.inbox') }}" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100">
+                <i class="fas fa-envelope mr-3"></i>
+                              Messages
+                          @php
+                          $unreadCount = Auth::user()->unreadMessages()->count();
+                     @endphp
+          @if($unreadCount > 0)
+            <span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">{{ $unreadCount }}</span>
+        @endif
+    </a>
+    <a href="{{ route('announcements.index') }}" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-gray-100">
+    <i class="fas fa-bullhorn mr-3"></i>
+    Announcements
+</a>
 
-                        
-                        @endif
+@endif
+                  
                     </nav>
                 </div>
             </div>
