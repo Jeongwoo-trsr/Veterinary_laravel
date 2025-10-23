@@ -10,27 +10,24 @@
 
             <form method="POST" action="{{ route('pets.store') }}" class="space-y-6">
                 @csrf
-
-                <!-- Pet Owner -->
-                @if(Auth::user()->isAdmin())
-                <div>
-                    <label for="owner_id" class="block text-sm font-medium text-gray-700">Pet Owner</label>
-                    <select id="owner_id" name="owner_id" required 
-                            class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('owner_id') border-red-500 @enderror">
-                        <option value="">Select pet owner</option>
-                        @foreach($petOwners as $owner)
-                        <option value="{{ $owner->id }}" {{ old('owner_id') == $owner->id ? 'selected' : '' }}>
-                            {{ $owner->user->name }}
-                        </option>
-                        @endforeach
-                    </select>
-                    @error('owner_id')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-                @else
-                <input type="hidden" name="owner_id" value="{{ Auth::user()->petOwner->id }}">
-                @endif
+<!-- Pet Owner -->
+@if(Auth::user()->role === 'admin' || Auth::user()->role === 'doctor')
+<div>
+    <label for="owner_id" class="block text-sm font-medium text-gray-700">Pet Owner *</label>
+    <select id="owner_id" name="owner_id" required 
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('owner_id') border-red-500 @enderror">
+        <option value="">Select pet owner</option>
+        @foreach($petOwners as $owner)
+        <option value="{{ $owner->id }}" {{ old('owner_id') == $owner->id ? 'selected' : '' }}>
+            {{ $owner->user->name }} ({{ $owner->user->email }})
+        </option>
+        @endforeach
+    </select>
+    @error('owner_id')
+        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+    @enderror
+</div>
+@endif
 
                 <!-- Pet Name -->
                 <div>
@@ -137,9 +134,9 @@
 
                 <!-- Submit Buttons -->
                 <div class="flex justify-end space-x-3">
-                    <a href="{{ route('pets.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                        Cancel
-                    </a>
+                 <a href="{{ route('admin.pets') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+    Cancel
+</a>
                     <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
                         <i class="fas fa-save mr-2"></i>
                         Add Pet
