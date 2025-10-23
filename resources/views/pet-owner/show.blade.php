@@ -7,6 +7,7 @@
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">Pet Details</h1>
         <div class="flex gap-2">
+            {{-- Remove Edit button for pet owners --}}
             <a href="{{ route('pet-owner.pets') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
                 <i class="fas fa-arrow-left mr-2"></i>Back
             </a>
@@ -16,12 +17,11 @@
     <div class="bg-white shadow-lg rounded-lg overflow-hidden">
        <!-- Header with gradient -->
         <div style="background: linear-gradient(135deg, #4663e4ff 0%, #fcff54ff 100%); padding: 32px; color: white;">
-    <div>
-        <h2 class="text-4xl font-bold mb-2">{{ $pet->name }}</h2>
-        <p class="text-purple-100 text-lg">{{ $pet->species }} - {{ $pet->breed ?? 'Mixed' }}</p>
-    </div>
+            <div>
+                <h2 class="text-4xl font-bold mb-2">{{ $pet->name }}</h2>
+                <p class="text-purple-100 text-lg">{{ $pet->species }} - {{ $pet->breed ?? 'Mixed' }}</p>
+            </div>
         </div>
-
 
         <!-- Pet Information -->
         <div class="p-6">
@@ -59,10 +59,6 @@
                             <label class="text-sm text-gray-600">Color</label>
                             <p class="font-medium">{{ $pet->color ?? 'N/A' }}</p>
                         </div>
-                        <div>
-                            <label class="text-sm text-gray-600">Microchip ID</label>
-                            <p class="font-medium">{{ $pet->microchip_id ?? 'Not microchipped' }}</p>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -77,7 +73,7 @@
             </div>
             @endif
 
-            <!-- Appointments History (if available) -->
+            <!-- Appointments History -->
             @if($pet->appointments && $pet->appointments->count() > 0)
             <div class="border-t pt-6 mt-6">
                 <h3 class="text-lg font-semibold mb-4 text-gray-800">Recent Appointments</h3>
