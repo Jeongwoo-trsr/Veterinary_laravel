@@ -28,7 +28,7 @@
 
         <!-- Search Input -->
         <div class="relative flex-1" style="max-width: 400px;">
-            <input type="text" id="searchInput" placeholder="Search pet, owner, service..." class="w-full px-4 py-2 pr-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            <input type="text" id="searchInput" placeholder="Search pet, service, doctor..." class="w-full px-4 py-2 pr-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
             <svg class="absolute right-3 top-2.5 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
@@ -77,25 +77,66 @@
                     <td class="px-6 py-4 text-sm text-gray-700">{{ $appt->doctor->user->name ?? 'N/A' }}</td>
                     <td class="px-6 py-4 text-sm">
                         @if($appt->cancellation_status === 'pending')
-                            <span class="status-badge text-purple-700 font-semibold">Cancellation Requested</span>
+                            <span class="px-3 py-1 text-sm font-bold rounded-md whitespace-nowrap inline-block bg-purple-200 text-purple-800">Cancellation Requested</span>
                         @elseif($appt->status === 'pending')
-                            <span class="status-badge text-yellow-700 font-semibold">Pending</span>
+                            <span class="px-3 py-1 text-sm font-bold rounded-md whitespace-nowrap inline-block bg-yellow-200 text-yellow-800">Pending Approval</span>
                         @elseif($appt->status === 'scheduled')
-                            <span class="status-badge text-orange-700 font-semibold">Scheduled</span>
+                            <span class="px-3 py-1 text-sm font-bold rounded-md whitespace-nowrap inline-block bg-blue-200 text-blue-800">Scheduled</span>
                         @elseif($appt->status === 'completed')
-                            <span class="status-badge text-green-600 font-semibold">Completed</span>
+                            <span class="px-3 py-1 text-sm font-bold rounded-md whitespace-nowrap inline-block bg-green-200 text-green-800">Completed</span>
                         @else
-                            <span class="status-badge text-red-600 font-semibold">Cancelled</span>
+                            <span class="px-3 py-1 text-sm font-bold rounded-md whitespace-nowrap inline-block bg-red-200 text-red-800">Cancelled</span>
                         @endif
                     </td>
                     <td class="px-6 py-4 text-sm font-medium">
-                        <div class="flex gap-3 justify-end">
-                            <button onclick="viewAppointment({{ $appt->id }})" class="text-blue-600 hover:text-blue-900" title="View"><i class="fas fa-eye"></i></button>
-                            @if($appt->status === 'pending')
-                                <button onclick="editAppointment({{ $appt->id }})" class="text-orange-500 hover:text-orange-700" title="Edit"><i class="fas fa-edit"></i></button>
-                                <button onclick="openCancelModal({{ $appt->id }})" class="text-red-600 hover:text-red-900" title="Cancel Appointment"><i class="fas fa-times-circle"></i></button>
-                            @elseif($appt->status === 'scheduled' && $appt->cancellation_status !== 'pending')
-                                <button onclick="openCancelModal({{ $appt->id }})" class="text-red-600 hover:text-red-900" title="Request Cancellation"><i class="fas fa-times-circle"></i></button>
+                        <div class="flex gap-3">
+                            <!-- View - Always Available -->
+                            <button onclick="viewAppointment({{ $appt->id }})" class="text-blue-600 hover:text-blue-900 transition" title="View">
+                                <i class="fas fa-eye text-lg"></i>
+                            </button>
+                            
+                            @if($appt->cancellation_status !== 'pending')
+                                <!-- Edit - Only for Pending appointments -->
+                                @if($appt->status === 'pending')
+                                    <button onclick="editAppointment({{ $appt->id }})" class="text-orange-500 hover:text-orange-700 transition" title="Edit">
+                                        <i class="fas fa-edit text-lg"></i>
+                                    </button>
+                                @elseif($appt->status === 'scheduled')
+                                    <button onclick="showScheduledDialog()" class="text-gray-400 cursor-not-allowed" title="Cannot Edit - Approved" disabled>
+                                        <i class="fas fa-edit text-lg"></i>
+                                    </button>
+                                @elseif($appt->status === 'completed')
+                                    <button onclick="showCompletedDialog()" class="text-gray-400 cursor-not-allowed" title="Cannot Edit - Completed" disabled>
+                                        <i class="fas fa-edit text-lg"></i>
+                                    </button>
+                                @else
+                                    <button onclick="showCancelledDialog()" class="text-gray-400 cursor-not-allowed" title="Cannot Edit - Cancelled" disabled>
+                                        <i class="fas fa-edit text-lg"></i>
+                                    </button>
+                                @endif
+                                
+                                <!-- Cancel/Request Cancellation -->
+                                @if($appt->status === 'pending')
+                                    <button onclick="openCancelModal({{ $appt->id }})" class="text-red-600 hover:text-red-900 transition" title="Cancel Appointment">
+                                        <i class="fas fa-times-circle text-lg"></i>
+                                    </button>
+                                @elseif($appt->status === 'scheduled')
+                                    <button onclick="openCancelModal({{ $appt->id }})" class="text-red-600 hover:text-red-900 transition" title="Request Cancellation">
+                                        <i class="fas fa-times-circle text-lg"></i>
+                                    </button>
+                                @else
+                                    <button class="text-gray-400 cursor-not-allowed" title="Cannot Cancel" disabled>
+                                        <i class="fas fa-times-circle text-lg"></i>
+                                    </button>
+                                @endif
+                            @else
+                                <!-- Show disabled buttons when cancellation is pending -->
+                                <button class="text-gray-400 cursor-not-allowed" title="Cancellation Pending" disabled>
+                                    <i class="fas fa-edit text-lg"></i>
+                                </button>
+                                <button class="text-gray-400 cursor-not-allowed" title="Cancellation Pending" disabled>
+                                    <i class="fas fa-times-circle text-lg"></i>
+                                </button>
                             @endif
                         </div>
                     </td>
@@ -117,22 +158,22 @@
         <a href="{{ route('pet-owner.appointments.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium">Schedule First Appointment</a>
     </div>
 @endif
-@endsection
 
-{{-- Modal placed OUTSIDE @section('content') to avoid flex layout issues --}}
-@section('modals')
+<!-- Cancel Modal -->
 <div id="cancelModal" class="modal-overlay">
     <div class="modal-content-wrapper">
         <div class="modal-inner">
             <div class="modal-header-section">
-                <h3 class="modal-title">Request Cancellation</h3>
+                <h3 class="modal-title" id="modalTitle">Cancel Appointment</h3>
                 <button type="button" class="modal-close-btn" onclick="closeCancelModal()">&times;</button>
             </div>
             
             <form id="cancelForm" method="POST">
                 @csrf
-                <div class="modal-form-group">
-                    <label class="modal-label">Reason for Cancellation <span class="text-red-500">*</span></label>
+                <div id="modalMessage" class="mb-4 p-3 rounded-lg"></div>
+                
+                <div class="modal-form-group" id="reasonSection">
+                    <label class="modal-label">Reason for Cancellation <span id="reasonRequired" class="text-red-500">*</span></label>
                     <select id="cancelReasonSelect" name="cancellation_reason" class="modal-select" required>
                         <option value="">-- Select Reason --</option>
                         <option value="Schedule Conflict">Schedule Conflict</option>
@@ -151,14 +192,83 @@
                 </div>
                 
                 <div class="modal-actions">
-                    <button type="button" class="modal-btn-secondary" onclick="closeCancelModal()">Cancel</button>
-                    <button type="submit" class="modal-btn-danger">Submit Request</button>
+                    <button type="button" class="modal-btn-secondary" onclick="closeCancelModal()">Close</button>
+                    <button type="submit" class="modal-btn-danger" id="submitBtn">Confirm Cancellation</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+
+<!-- Scheduled Appointment Dialog -->
+<div id="scheduledDialog" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+                <i class="fas fa-info-circle text-blue-600 text-2xl"></i>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mt-5">Cannot Edit Approved Appointment</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">
+                    This appointment has been approved and scheduled. To make changes, please contact the clinic directly or request a cancellation.
+                </p>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button onclick="closeDialog('scheduledDialog')" class="px-4 py-2 bg-blue-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Completed Appointment Dialog -->
+<div id="completedDialog" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mt-5">Cannot Edit Completed Appointment</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">
+                    This appointment has been completed and is part of your pet's medical history. It cannot be modified.
+                </p>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button onclick="closeDialog('completedDialog')" class="px-4 py-2 bg-green-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-700">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancelled Appointment Dialog -->
+<div id="cancelledDialog" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <i class="fas fa-times-circle text-red-600 text-2xl"></i>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mt-5">Cannot Edit Cancelled Appointment</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">
+                    This appointment has been cancelled. If you need to reschedule, please create a new appointment instead.
+                </p>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button onclick="closeDialog('cancelledDialog')" class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('modals')
 <style>
 #statusFilter:hover { 
     background-color: #FBBF24 !important; 
@@ -169,7 +279,7 @@
     white-space: nowrap !important; 
 }
 
-/* Modal Styles - Using unique class names to avoid conflicts */
+/* Modal Styles */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -316,65 +426,20 @@
     background-color: #B91C1C;
 }
 
-body.modal-open {
-    /* Removed body locking styles that were causing layout issues */
+/* Consistent icon sizing */
+.fas {
+    font-size: 1.125rem;
+}
+
+/* Disabled button styling */
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed !important;
 }
 </style>
 
 <script>
-console.log('=== APPOINTMENTS SCRIPT LOADED ===');
-
-// Define all functions in global scope IMMEDIATELY
-window.openCancelModal = function(appointmentId) {
-    console.log('openCancelModal called with ID:', appointmentId);
-    
-    const modal = document.getElementById('cancelModal');
-    const form = document.getElementById('cancelForm');
-    
-    if (!modal) {
-        console.error('Modal element not found!');
-        alert('ERROR: Modal not found. Check console.');
-        return;
-    }
-    
-    if (!form) {
-        console.error('Form element not found!');
-        alert('ERROR: Form not found. Check console.');
-        return;
-    }
-    
-    // Set form action
-    form.action = '{{ url("/pet-owner/appointments") }}/' + appointmentId + '/request-cancellation';
-    console.log('Form action set to:', form.action);
-    
-    // Show modal
-    modal.classList.add('active');
-    // document.body.classList.add('modal-open'); // REMOVED - causing layout issues
-    
-    console.log('Modal displayed. Classes:', modal.className);
-};
-
-window.closeCancelModal = function() {
-    console.log('closeCancelModal called');
-    
-    const modal = document.getElementById('cancelModal');
-    const form = document.getElementById('cancelForm');
-    const select = document.getElementById('cancelReasonSelect');
-    const otherContainer = document.getElementById('otherReasonContainer');
-    const otherText = document.getElementById('otherReasonText');
-    
-    if (modal) {
-        modal.classList.remove('active');
-        // document.body.classList.remove('modal-open'); // REMOVED - was causing layout issues
-    }
-    
-    if (select) select.value = '';
-    if (otherContainer) otherContainer.style.display = 'none';
-    if (otherText) otherText.value = '';
-    
-    console.log('Modal closed');
-};
-
+// Define all functions in global scope
 window.viewAppointment = function(id) {
     window.location.href = '/appointments/' + id;
 };
@@ -383,10 +448,46 @@ window.editAppointment = function(id) {
     window.location.href = '/appointments/' + id + '/edit';
 };
 
-// Wait for DOM to be ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM Content Loaded');
+window.openCancelModal = function(appointmentId) {
+    const modal = document.getElementById('cancelModal');
+    const form = document.getElementById('cancelForm');
     
+    if (!modal || !form) return;
+    
+    form.action = '{{ url("/pet-owner/appointments") }}/' + appointmentId + '/request-cancellation';
+    modal.classList.add('active');
+};
+
+window.closeCancelModal = function() {
+    const modal = document.getElementById('cancelModal');
+    const form = document.getElementById('cancelForm');
+    const select = document.getElementById('cancelReasonSelect');
+    const otherContainer = document.getElementById('otherReasonContainer');
+    const otherText = document.getElementById('otherReasonText');
+    
+    if (modal) modal.classList.remove('active');
+    if (select) select.value = '';
+    if (otherContainer) otherContainer.style.display = 'none';
+    if (otherText) otherText.value = '';
+};
+
+window.showScheduledDialog = function() {
+    document.getElementById('scheduledDialog').classList.remove('hidden');
+};
+
+window.showCompletedDialog = function() {
+    document.getElementById('completedDialog').classList.remove('hidden');
+};
+
+window.showCancelledDialog = function() {
+    document.getElementById('cancelledDialog').classList.remove('hidden');
+};
+
+window.closeDialog = function(dialogId) {
+    document.getElementById(dialogId).classList.add('hidden');
+};
+
+document.addEventListener('DOMContentLoaded', function() {
     const cancelModal = document.getElementById('cancelModal');
     const cancelForm = document.getElementById('cancelForm');
     const cancelReasonSelect = document.getElementById('cancelReasonSelect');
@@ -395,9 +496,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
     const noResults = document.getElementById('noResults');
-    
-    console.log('Modal element found:', !!cancelModal);
-    console.log('Form element found:', !!cancelForm);
     
     // Show/hide other reason textarea
     if (cancelReasonSelect) {
@@ -424,14 +522,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // Create hidden input with the custom reason
                 const hiddenInput = document.createElement('input');
                 hiddenInput.type = 'hidden';
                 hiddenInput.name = 'cancellation_reason';
                 hiddenInput.value = reason;
                 cancelForm.appendChild(hiddenInput);
                 
-                // Submit the form
                 cancelForm.submit();
             }
         });
@@ -446,10 +542,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Close modal with ESC key
+    // Close modals with ESC key
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && cancelModal && cancelModal.classList.contains('active')) {
+        if (e.key === 'Escape') {
             closeCancelModal();
+            closeDialog('scheduledDialog');
+            closeDialog('completedDialog');
+            closeDialog('cancelledDialog');
+        }
+    });
+
+    // Close info dialogs when clicking outside
+    ['scheduledDialog', 'completedDialog', 'cancelledDialog'].forEach(dialogId => {
+        const dialog = document.getElementById(dialogId);
+        if (dialog) {
+            dialog.addEventListener('click', function(e) {
+                if (e.target === dialog) {
+                    closeDialog(dialogId);
+                }
+            });
         }
     });
 
@@ -487,10 +598,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (searchInput) searchInput.addEventListener('input', filterAppointments);
     if (statusFilter) statusFilter.addEventListener('change', filterAppointments);
-    
-    console.log('All event listeners attached');
 });
-
-console.log('=== SCRIPT INITIALIZATION COMPLETE ===');
 </script>
 @endsection
