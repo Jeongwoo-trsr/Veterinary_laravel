@@ -3,7 +3,7 @@
 @section('title', 'Edit Medical Record')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
+<div class="max-w-4xl mx-auto px-4 py-8">
     <div class="bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
             <div class="flex justify-between items-center mb-6">
@@ -187,7 +187,7 @@
                         <label for="follow_up_date" class="block text-sm font-medium text-gray-700">Follow-up Date</label>
                         <input id="follow_up_date" name="follow_up_date" type="date" 
                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('follow_up_date') border-red-500 @enderror" 
-                               value="{{ old('follow_up_date', $medicalRecord->follow_up_date ? $medicalRecord->follow_up_date->format('Y-m-d') : '') }}">
+                               value="{{ old('follow_up_date', $medicalRecord->follow_up_date ? $medicalRecord->follow_up_date : '') }}">
                         @error('follow_up_date')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -198,7 +198,7 @@
                         <input id="follow_up_notes" name="follow_up_notes" type="text" 
                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" 
                                placeholder="Follow-up instructions..." 
-                               value="{{ old('follow_up_notes', $medicalRecord->followUpSchedules->first()?->notes ?? '') }}">
+                               value="{{ old('follow_up_notes', $medicalRecord->followUpSchedules->first()->notes ?? '') }}">
                     </div>
                 </div>
 
@@ -255,3 +255,14 @@ document.getElementById('add-medication').addEventListener('click', function() {
                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" 
                    placeholder="e.g., With food">
         </div>
+        <div class="flex items-end">
+            <button type="button" onclick="this.closest('.medication-row').remove()" class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(newRow);
+    medicationIndex++;
+});
+</script>
+@endsection
