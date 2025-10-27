@@ -307,7 +307,7 @@
             </label>
             <input type="date" name="appointment_date" id="appointment_date"
                 value="{{ old('appointment_date') }}"
-                min="{{ date('Y-m-d') }}"
+                min="{{ date('Y-m-d', strtotime('+1 day')) }}"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
             @error('appointment_date') <span class="text-red-500 text-sm"><i class="fas fa-exclamation-circle"></i> {{ $message }}</span> @enderror
         </div>
