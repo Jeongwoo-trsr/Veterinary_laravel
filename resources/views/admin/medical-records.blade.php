@@ -33,7 +33,7 @@
     @endif
 
     <!-- Search Section -->
-    <div class="mb-8 flex justify-between items-center gap-4">
+    <div class="flex justify-between items-center gap-4" style="margin-bottom: 3rem;">
         <form method="GET" action="{{ route('medical-records.index') }}" class="flex items-center gap-4 w-full">
             <div class="relative ml-auto w-full max-w-md">
                 <input id="searchInput" type="text" name="search" value="{{ request('search') }}" placeholder="Search pet, owner, service..." 
@@ -60,7 +60,6 @@
                             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Diagnosis</th>
                             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Treatment</th>
                             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Date</th>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Status</th>
                             <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Actions</th>
                         </tr>
                     </thead>
@@ -70,9 +69,6 @@
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $loop->iteration + ($medicalRecords->currentPage() - 1) * $medicalRecords->perPage() }}</td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
-                                    <!-- <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-paw text-blue-600 text-sm"></i>
-                                    </div> -->
                                     <span class="font-medium text-gray-900">{{ $record->pet->name }}</span>
                                 </div>
                             </td>
@@ -85,13 +81,6 @@
                                 <span class="truncate max-w-xs" title="{{ $record->treatment }}">{{ Str::limit($record->treatment, 30) }}</span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $record->created_at->format('M d, Y') }}</td>
-                            <td class="px-6 py-4">
-                                @if($record->follow_up_date && $record->follow_up_date >= now()->toDateString())
-                                    <span class="text-yellow-800 font-semibold">Follow-up</span>
-                                @else
-                                    <span class="text-green-800 font-semibold">Resolved</span>
-                                @endif
-                            </td>
                             <td class="px-6 py-6">
                                 <a href="{{ route('medical-records.show', $record->id) }}" class="text-blue-600 hover:text-blue-900 transition" title="View Details">
                                     <i class="fas fa-eye"></i>
