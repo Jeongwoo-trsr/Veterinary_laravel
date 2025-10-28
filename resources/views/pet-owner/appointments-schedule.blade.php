@@ -10,9 +10,10 @@
         grid-template-columns: repeat(4, 1fr);
         gap: 12px;
         padding: 20px;
-        background: #f9fafb;
+        background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%);
         border-radius: 12px;
         min-height: 200px;
+        border: 2px solid #d1d5db;
     }
     
     @media (max-width: 768px) {
@@ -36,21 +37,22 @@
         flex-direction: column;
         align-items: center;
         gap: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
     
     .time-slot-btn:hover {
-        background: #ecfdf5;
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
         transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 6px 12px rgba(16, 185, 129, 0.2);
         border-color: #059669;
     }
     
     .time-slot-btn.selected {
-        background: #2563eb !important;
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
         color: white !important;
-        border-color: #2563eb !important;
-        box-shadow: 0 4px 12px rgba(37,99,235,0.3);
-        transform: scale(1.02);
+        border-color: #1e40af !important;
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+        transform: scale(1.05);
     }
     
     .time-slot-btn.selected .slot-icon,
@@ -61,7 +63,7 @@
     .time-slot-disabled {
         padding: 16px 12px;
         border: 2px solid #e5e7eb;
-        background: #f9fafb;
+        background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
         color: #9ca3af;
         border-radius: 12px;
         cursor: not-allowed;
@@ -125,17 +127,18 @@
     /* Doctor Card */
     .doctor-card {
         background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        border: 1px solid #93c5fd;
+        border: 2px solid #93c5fd;
         border-radius: 12px;
         padding: 20px;
         margin: 20px 0;
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1);
     }
     
     .doctor-avatar {
         width: 50px;
         height: 50px;
         border-radius: 50%;
-        background: #2563eb;
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
         color: white;
         display: flex;
         align-items: center;
@@ -143,6 +146,7 @@
         font-size: 20px;
         font-weight: 700;
         margin-right: 16px;
+        box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
     }
     
     .doctor-info {
@@ -155,7 +159,7 @@
         display: block;
         font-size: 14px;
         font-weight: 600;
-        color: #374151;
+        color: #1e3a5f;
         margin-bottom: 8px;
     }
     
@@ -166,12 +170,13 @@
     
     .clinic-hours-badge {
         display: inline-block;
-        background: #dbeafe;
-        color: #1e40af;
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #92400e;
         padding: 6px 12px;
         border-radius: 999px;
         font-size: 12px;
         font-weight: 600;
+        border: 1px solid #fbbf24;
     }
     
     .section-header {
@@ -186,20 +191,23 @@
         position: fixed;
         top: 20px;
         right: 20px;
-        background: #10b981;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         color: white;
         padding: 16px 24px;
-        border-radius: 8px;
-        box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
         z-index: 1000;
         animation: slideIn 0.3s ease;
         display: flex;
         align-items: center;
         gap: 10px;
+        border: 2px solid #059669;
     }
     
     .notification.error {
-        background: #ef4444;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        border-color: #dc2626;
+        box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
     }
     
     @keyframes slideIn {
@@ -221,21 +229,42 @@
         border-color: #2563eb;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
+
+    /* Card styling */
+    .form-card {
+        background: white;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border: 2px solid #e5e7eb;
+    }
+
+    /* Input styling */
+    input[type="date"],
+    select,
+    textarea {
+        border: 2px solid #d1d5db;
+        transition: all 0.2s;
+    }
+
+    input[type="date"]:hover,
+    select:hover,
+    textarea:hover {
+        border-color: #9ca3af;
+    }
 </style>
 
-<div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-8">
-    <div class="flex justify-between items-center mb-6">
+<div class="max-w-4xl mx-auto bg-white shadow-2xl rounded-lg p-8 form-card">
+    <div class="flex justify-between items-center mb-6 pb-4 border-b-2 border-gray-200">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800">Schedule an Appointment</h2>
+            <h2 class="text-2xl font-bold text-[#1e3a5f]">Schedule an Appointment</h2>
             <p class="text-sm text-gray-600 mt-1">Fill in the details below to book your appointment</p>
         </div>
-        <a href="{{ route('pet-owner.appointments') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400" style="text-decoration: none;">
+        <a href="{{ route('pet-owner.appointments') }}" class="px-4 py-2 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 rounded-lg hover:from-gray-300 hover:to-gray-400 transition-all shadow-md" style="text-decoration: none;">
             <i class="fas fa-arrow-left mr-2"></i>Back
         </a>
     </div>
 
     @if($errors->any())
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded mb-4">
+        <div class="bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg mb-4 shadow-md">
             <p class="font-semibold mb-2"><i class="fas fa-exclamation-circle mr-2"></i>Please fix the following errors:</p>
             <ul class="list-disc list-inside">
                 @foreach($errors->all() as $error)
@@ -254,7 +283,7 @@
                 <label for="pet_id" class="form-label">
                     <i class="fas fa-paw"></i>Select Pet *
                 </label>
-                <select name="pet_id" id="pet_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                <select name="pet_id" id="pet_id" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg shadow-sm" required>
                     <option value="">-- Choose Your Pet --</option>
                     @foreach($pets as $pet)
                         <option value="{{ $pet->id }}" {{ old('pet_id') == $pet->id ? 'selected' : '' }}>
@@ -270,7 +299,7 @@
                 <label for="service_id" class="form-label">
                     <i class="fas fa-stethoscope"></i>Select Service *
                 </label>
-                <select name="service_id" id="service_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                <select name="service_id" id="service_id" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg shadow-sm" required>
                     <option value="">-- Choose Service --</option>
                     @foreach($services as $service)
                         <option value="{{ $service->id }}" {{ old('service_id') == $service->id ? 'selected' : '' }}>
@@ -292,9 +321,9 @@
                     {{ strtoupper(substr($doctor->user->name, 0, 1)) }}
                 </div>
                 <div>
-                    <p style="font-weight: 600; color: #1f2937;">{{ $doctor->user->name }}</p>
+                    <p style="font-weight: 700; color: #1e3a5f; font-size: 16px;">{{ $doctor->user->name }}</p>
                     @if($doctor->specialization)
-                        <p style="font-size: 14px; color: #6b7280;">{{ $doctor->specialization }}</p>
+                        <p style="font-size: 14px; color: #6b7280; font-weight: 500;">{{ $doctor->specialization }}</p>
                     @endif
                 </div>
             </div>
@@ -308,7 +337,7 @@
             <input type="date" name="appointment_date" id="appointment_date"
                 value="{{ old('appointment_date') }}"
                 min="{{ date('Y-m-d', strtotime('+1 day')) }}"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg shadow-sm" required>
             @error('appointment_date') <span class="text-red-500 text-sm"><i class="fas fa-exclamation-circle"></i> {{ $message }}</span> @enderror
         </div>
 
@@ -340,16 +369,16 @@
                 <i class="fas fa-sticky-note"></i>Additional Notes <span style="font-weight: 400; color: #6b7280;">(Optional)</span>
             </label>
             <textarea name="notes" id="notes" rows="4" 
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg shadow-sm"
                 placeholder="Any additional information (symptoms, special requests, etc.)">{{ old('notes') }}</textarea>
         </div>
 
         <!-- Submit Buttons -->
-        <div class="flex justify-end gap-3" style="padding-top: 20px; border-top: 1px solid #e5e7eb;">
-            <a href="{{ route('pet-owner.appointments') }}" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400" style="text-decoration: none;">
+        <div class="flex justify-end gap-3" style="padding-top: 20px; border-top: 2px solid #e5e7eb;">
+            <a href="{{ route('pet-owner.appointments') }}" class="px-6 py-2 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-700 rounded-lg hover:from-gray-300 hover:to-gray-400 font-medium shadow-md transition-all" style="text-decoration: none;">
                 <i class="fas fa-times mr-2"></i>Cancel
             </a>
-            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <button type="submit" class="px-6 py-2 bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white rounded-lg hover:from-[#1e40af] hover:to-[#1e3a5f] font-medium shadow-md hover:shadow-lg transition-all transform hover:scale-105">
                 <i class="fas fa-calendar-plus mr-2"></i>Schedule Appointment
             </button>
         </div>
