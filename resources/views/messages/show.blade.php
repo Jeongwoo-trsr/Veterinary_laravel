@@ -1,83 +1,66 @@
 @extends('layouts.app')
 
-@section('title', 'Sent Messages')
+@section('title', 'Message')
 
 @section('content')
-<div class="max-w-7xl mx-auto">
+<div class="max-w-4xl mx-auto px-3 sm:px-4 lg:px-6">
     <div class="bg-white rounded-lg shadow-lg overflow-hidden">
         <!-- Header -->
-        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-bold text-white">Sent Messages</h1>
-                    <p class="text-blue-100 text-sm">Messages you have sent</p>
-                </div>
-                <a href="{{ route('messages.create') }}" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition flex items-center gap-2">
-                    <i class="fas fa-plus"></i> New Message
-                </a>
-            </div>
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-4 flex items-center justify-between">
+            <h1 class="text-xl sm:text-2xl font-bold text-white">Message</h1>
+            <a href="{{ route('messages.inbox') }}" class="text-white hover:text-blue-100 transition flex items-center gap-2 text-sm sm:text-base">
+                <i class="fas fa-arrow-left"></i>
+                <span class="hidden sm:inline">Back to Inbox</span>
+            </a>
         </div>
 
-        <!-- Tabs -->
-        <div class="border-b border-gray-200 bg-gray-50">
-            <div class="flex px-6">
-                <a href="{{ route('messages.inbox') }}" class="px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                    <i class="fas fa-inbox mr-2"></i>Inbox
-                </a>
-                <a href="{{ route('messages.sent') }}" class="px-4 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
-                    <i class="fas fa-paper-plane mr-2"></i>Sent Mail
-                </a>
-            </div>
-        </div>
+        <!-- Message Content -->
+        <div class="p-4 sm:p-6">
+            <!-- From/To Info -->
+            <div class="mb-6 pb-6 border-b border-gray-200">
+                <div class="flex items-start gap-3 sm:gap-4">
+                    <!-- Avatar -->
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg sm:text-xl flex-shrink-0">
+                        {{ strtoupper(substr($message->sender->name, 0, 1)) }}
+                    </div>
 
-        <!-- Messages List -->
-        <div class="divide-y divide-gray-200">
-            @forelse($messages as $message)
-                <div class="px-6 py-4 hover:bg-gray-50 cursor-pointer transition" 
-                     onclick="window.location='{{ route('messages.show', $message) }}'">
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center font-semibold">
-                            {{ strtoupper(substr($message->receiver->name, 0, 1)) }}
-                        </div>
-
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center gap-3">
-                                    <span class="font-semibold text-gray-900">
-                                        To: {{ $message->receiver->name }}
-                                    </span>
-                                    <span class="text-sm text-gray-600">{{ $message->subject }}</span>
-                                </div>
-                                <span class="text-sm text-gray-500">
-                                    {{ $message->created_at->format('M d, g:i a') }}
-                                </span>
+                    <!-- Info -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                            <div class="min-w-0">
+                                <h3 class="text-base sm:text-lg font-semibold text-gray-900 truncate">{{ $message->sender->name }}</h3>
+                                <p class="text-xs sm:text-sm text-gray-500 truncate">{{ $message->sender->email }}</p>
                             </div>
-                            <p class="text-sm text-gray-600 truncate">
-                                {{ Str::limit($message->message, 100) }}
-                            </p>
+                            <span class="text-xs sm:text-sm text-gray-500 flex-shrink-0">
+                                {{ $message->created_at->format('M d, Y g:i A') }}
+                            </span>
                         </div>
-
-                        @if($message->is_read)
-                            <i class="fas fa-check-double text-blue-500" title="Read"></i>
-                        @else
-                            <i class="fas fa-check text-gray-400" title="Sent"></i>
-                        @endif
+                        <div class="text-xs sm:text-sm text-gray-600">
+                            <span class="font-medium">To:</span> {{ $message->receiver->name }}
+                        </div>
                     </div>
                 </div>
-            @empty
-                <div class="px-6 py-12 text-center">
-                    <i class="fas fa-paper-plane text-gray-300 text-6xl mb-4"></i>
-                    <p class="text-gray-500 text-lg">No sent messages</p>
-                </div>
-            @endforelse
-        </div>
-
-        <!-- Pagination -->
-        @if($messages->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200">
-                {{ $messages->links() }}
             </div>
-        @endif
+
+            <!-- Subject -->
+            <div class="mb-4 sm:mb-6">
+                <h2 class="text-lg sm:text-2xl font-bold text-gray-900 break-words">{{ $message->subject }}</h2>
+            </div>
+
+            <!-- Message Body -->
+            <div class="prose max-w-none mb-6">
+                <div class="text-sm sm:text-base text-gray-700 whitespace-pre-wrap break-words leading-relaxed">{{ $message->message }}</div>
+            </div>
+
+            <!-- Reply Button -->
+            <div class="pt-6 border-t border-gray-200">
+                <a href="{{ route('messages.create') }}?receiver_id={{ $message->sender_id }}&subject=Re: {{ $message->subject }}" 
+                   class="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-sm gap-2">
+                    <i class="fas fa-reply"></i>
+                    <span>Reply</span>
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
