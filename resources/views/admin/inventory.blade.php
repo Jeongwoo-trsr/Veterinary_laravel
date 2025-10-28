@@ -10,25 +10,24 @@
 
 <!-- Statistics Cards -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-    <a href="{{ route('admin.inventory') }}" class="bg-blue-100 p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer">
+    <a href="{{ route('admin.inventory') }}" class="bg-blue-100 p-1 rounded-lg shadow hover:shadow-lg transition cursor-pointer text-center">
         <h3 class="text-gray-600 text-sm font-medium">Total Items</h3>
-        <p class="text-3xl font-bold text-blue-600">{{ $totalItems }}</p>
+        <p class="text-xl font-bold text-blue-600">{{ $totalItems }}</p>
     </a>
     
-    <a href="{{ route('admin.inventory.filter', 'low-stock') }}" class="bg-blue-100 p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer">
-        <h3 class="text-gray-600 text-sm font-medium">Low Stock Alerts</h3>
-        <p class="text-3xl font-bold text-yellow-600">⚠️</p>
-        <p class="text-sm text-gray-500 mt-1">{{ $lowStockCount }} items</p>
+    <a href="{{ route('admin.inventory.filter', 'low-stock') }}" class="bg-blue-100 p-1 rounded-lg shadow hover:shadow-lg transition cursor-pointer text-center">
+        <h3 class="text-gray-600 text-sm font-medium">Low Stock Items</h3>
+        <p class="text-xl font-bold text-yellow-600">{{ $lowStockCount }}</p>
     </a>
     
-    <a href="{{ route('admin.inventory.filter', 'top-used') }}" class="bg-blue-100 p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer">
+    <a href="{{ route('admin.inventory.filter', 'top-used') }}" class="bg-blue-100 p-1 rounded-lg shadow hover:shadow-lg transition cursor-pointer text-center">
         <h3 class="text-gray-600 text-sm font-medium">Top Used Items</h3>
-        <p class="text-3xl font-bold text-purple-600">{{ $topUsedItems->count() }}</p>
+        <p class="text-xl font-bold text-purple-600">{{ $topUsedItems->count() }}</p>
     </a>
     
-    <a href="{{ route('admin.inventory.filter', 'expired') }}" class="bg-blue-100 p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer">
+    <a href="{{ route('admin.inventory.filter', 'expired') }}" class="bg-blue-100 p-1 rounded-lg shadow hover:shadow-lg transition cursor-pointer text-center">
         <h3 class="text-gray-600 text-sm font-medium">Expired Items</h3>
-        <p class="text-3xl font-bold text-red-600">{{ $expiredCount }}</p>
+        <p class="text-xl font-bold text-red-600">{{ $expiredCount }}</p>
     </a>
 </div>
 
