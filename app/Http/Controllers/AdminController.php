@@ -100,12 +100,16 @@ public function storePetOwner(Request $request)
     return redirect()->route('admin.pet-owners')->with('success', 'Pet owner added successfully.');
 }
 
+// public function show($id)
+// {
+//     $petOwner = PetOwner::with(['user', 'pets'])->findOrFail($id);
+//     return view('admin.pet-owners.show', compact('petOwner'));
+// }
 
-
-public function showPetOwner(PetOwner $petOwner)
+public function show(PetOwner $petOwner)
 {
     $petOwner->load(['user', 'pets']);
-    return view('pet-owner.show', compact('petOwner'));
+    return view('admin.pet-owners.show', compact('petOwner'));
 }
 
 public function editPetOwner(PetOwner $petOwner)
@@ -141,15 +145,11 @@ public function updatePetOwner(Request $request, PetOwner $petOwner)
 
     return redirect()->route('admin.pet-owners')->with('success', 'Pet owner updated successfully.');
 }
-
-
-  // Replace the pets method in AdminController.php
-
-public function pets(Request $request)
+   public function pets(Request $request)
 {
     $query = Pet::with(['owner.user']);
     
-    // Search functionality
+    // Search filter
     if ($request->filled('search')) {
         $search = $request->input('search');
         $query->where(function($q) use ($search) {
@@ -161,23 +161,24 @@ public function pets(Request $request)
               });
         });
     }
-
-    // Species filter
+    
+    // Species filter (NEW CODE)
     if ($request->filled('species')) {
-        $species = $request->input('species');
-        $query->where('species', 'like', $species);
+        $query->where('species', $request->input('species'));
     }
     
-    $pets = $query->paginate(15);
-
-    // Handle AJAX requests for live search
+    $pets = $query->paginate(15)->appends([
+        'search' => $request->input('search'),
+        'species' => $request->input('species')
+    ]);
+    
+    // Handle AJAX requests
     if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
         return view('admin.pets', compact('pets'))->render();
     }
-
+    
     return view('admin.pets', compact('pets'));
 }
-
     public function doctors()
     {
         $doctors = Doctor::with('user')->paginate(15);
@@ -196,9 +197,19 @@ public function pets(Request $request)
     ]);
 }
 
-    public function appointments(Request $request)
+  
+
+public function appointments(Request $request)
 {
+    
+    $pendingAppointments = Appointment::with(['pet.owner.user', 'doctor.user', 'service'])
+        ->where('status', 'pending')
+        ->orderBy('appointment_date', 'desc')
+        ->get();
+    
+   
     $query = Appointment::with(['pet.owner.user', 'doctor.user', 'service'])
+        ->where('status', '!=', 'pending')  
         ->orderBy('appointment_date', 'desc');
 
     // Search filter
@@ -217,7 +228,7 @@ public function pets(Request $request)
         });
     }
 
-    // Status filter (including today's appointments)
+    // Status filter
     if ($request->filled('status')) {
         $status = $request->input('status');
         if ($status === 'today') {
@@ -228,12 +239,6 @@ public function pets(Request $request)
     }
 
     $appointments = $query->paginate(15);
-    
-    // Get pending appointments separately (not paginated)
-    $pendingAppointments = Appointment::with(['pet.owner.user', 'doctor.user', 'service'])
-        ->where('status', 'pending')
-        ->orderBy('appointment_date', 'desc')
-        ->get();
     
     return view('admin.appointments', compact('appointments', 'pendingAppointments'));
 }
@@ -291,37 +296,9 @@ public function rejectAppointment(Appointment $appointment)
     }
 
     public function medicalRecords(Request $request)
-{
-    $query = MedicalRecord::with(['pet.owner.user', 'doctor.user', 'appointment']);
-
-    // Search functionality
-    if ($request->filled('search')) {
-        $search = $request->input('search');
-        $query->where(function($q) use ($search) {
-            $q->whereHas('pet', function($subQuery) use ($search) {
-                $subQuery->where('name', 'like', "%{$search}%");
-            })
-            ->orWhereHas('pet.owner.user', function($subQuery) use ($search) {
-                $subQuery->where('name', 'like', "%{$search}%");
-            })
-            ->orWhereHas('doctor.user', function($subQuery) use ($search) {
-                $subQuery->where('name', 'like', "%{$search}%");
-            })
-            ->orWhere('diagnosis', 'like', "%{$search}%")
-            ->orWhere('treatment', 'like', "%{$search}%");
-        });
+    {
+    return app(\App\Http\Controllers\MedicalRecordController::class)->index($request);
     }
-
-    $medicalRecords = $query->orderBy('created_at', 'desc')->paginate(15);
-
-    // Handle AJAX requests for live search
-    if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
-        return view('admin.medical-records', compact('medicalRecords'))->render();
-    }
-
-    return view('admin.medical-records', compact('medicalRecords'));
-}
-
     public function reports()
     {
         $revenue_by_service = Service::select('name', DB::raw('SUM(price) as total_revenue'))
@@ -341,10 +318,35 @@ public function rejectAppointment(Appointment $appointment)
         return view('admin.reports', compact('revenue_by_service', 'appointments_by_status', 'pets_by_species'));
     }
 
-    public function inventory()
+public function inventory(Request $request)
 {
-    $items = InventoryItem::orderBy('created_at', 'desc')->paginate(15);
+    $search = $request->input('search', '');
+    $category = $request->input('category', '');
+
+    $query = InventoryItem::query();
+
+    if (!empty($search)) {
+        $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('category', 'like', "%{$search}%")
+              ->orWhere('supplier_name', 'like', "%{$search}%");
+        });
+    }
+
+    // Category filter
+    if (!empty($category)) {
+        $query->where('category', $category);
+    }
+
+    // Get items with pagination
+    $items = $query->orderBy('created_at', 'desc')
+                   ->paginate(15)
+                   ->appends([
+                       'search' => $search,
+                       'category' => $category
+                   ]);
     
+    // Calculate statistics
     $totalItems = InventoryItem::count();
     $lowStockCount = InventoryItem::lowStock()->count();
     $expiredCount = InventoryItem::expired()->count();
@@ -353,7 +355,19 @@ public function rejectAppointment(Appointment $appointment)
                                    ->limit(4)
                                    ->get();
 
-    return view('admin.inventory', compact('items', 'totalItems', 'lowStockCount', 'expiredCount', 'topUsedItems'));
+    // Get all categories for filter dropdown
+    $categories = ['Medicine', 'Consumables', 'Equipment', 'Pet Food'];
+
+    return view('admin.inventory', compact(
+        'items',
+        'totalItems',
+        'lowStockCount',
+        'expiredCount',
+        'topUsedItems',
+        'search',
+        'category',
+        'categories'
+    ));
 }
 
 
@@ -403,6 +417,9 @@ public function rejectAppointment(Appointment $appointment)
 
     public function inventoryFilter($type)
 {
+    $search = '';
+    $category = '';
+    
     switch($type) {
         case 'low-stock':
             $items = InventoryItem::lowStock()->orderBy('created_at', 'desc')->paginate(15);
@@ -430,7 +447,20 @@ public function rejectAppointment(Appointment $appointment)
                                    ->limit(4)
                                    ->get();
 
-    return view('admin.inventory', compact('items', 'totalItems', 'lowStockCount', 'expiredCount', 'topUsedItems', 'filterTitle'));
+    // Get all categories for filter dropdown
+    $categories = ['Medicine', 'Consumables', 'Equipment', 'Pet Food'];
+
+    return view('admin.inventory', compact(
+        'items',
+        'totalItems',
+        'lowStockCount',
+        'expiredCount',
+        'topUsedItems',
+        'filterTitle',
+        'search',
+        'category',
+        'categories'
+    ));
 }
 
 

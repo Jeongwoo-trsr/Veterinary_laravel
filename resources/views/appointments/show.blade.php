@@ -6,16 +6,16 @@
 <div class="max-w-4xl mx-auto">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">Appointment Details</h1>
-        @if(Auth::user()->isDoctor())
+        @if(Auth::user()->isAdmin())
+            <a href="{{ route('admin.appointments') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                <i class="fas fa-arrow-left mr-2"></i>Back
+            </a>
+        @elseif(Auth::user()->isDoctor())
             <a href="{{ route('doctor.appointments') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
                 <i class="fas fa-arrow-left mr-2"></i>Back
             </a>
         @elseif(Auth::user()->isPetOwner())
             <a href="{{ route('pet-owner.appointments') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-                <i class="fas fa-arrow-left mr-2"></i>Back
-            </a>
-        @else
-            <a href="{{ route('appointments.index') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
                 <i class="fas fa-arrow-left mr-2"></i>Back
             </a>
         @endif
@@ -83,28 +83,6 @@
                     <p class="font-medium">{{ $appointment->doctor->user->name }}</p>
                 </div>
             </div>
-        </div>
-
-        <div class="mt-6 flex justify-end gap-3">
-            @if(Auth::user()->isAdmin() || (Auth::user()->isDoctor() && $appointment->doctor_id === Auth::user()->doctor->id) || (Auth::user()->isPetOwner() && $appointment->pet->owner->user_id === Auth::user()->id))
-                <a href="{{ route('appointments.edit', $appointment->id) }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    <i class="fas fa-edit mr-2"></i>Edit
-                </a>
-            @endif
-            
-            @if(Auth::user()->isDoctor())
-                <a href="{{ route('doctor.appointments') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-                    Close
-                </a>
-            @elseif(Auth::user()->isPetOwner())
-                <a href="{{ route('pet-owner.appointments') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-                    Close
-                </a>
-            @else
-                <a href="{{ route('appointments.index') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-                    Close
-                </a>
-            @endif
         </div>
     </div>
 </div>

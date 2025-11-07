@@ -19,10 +19,14 @@ class Pet extends Model
         'gender',
         'microchip_id',
         'medical_notes',
+        'approval_status',
+        'rejection_reason',
+        'approved_at',
     ];
 
     protected $casts = [
         'weight' => 'decimal:2',
+        'approved_at' => 'datetime',
     ];
 
     // Relationships
@@ -39,5 +43,37 @@ class Pet extends Model
     public function medicalRecords(): HasMany
     {
         return $this->hasMany(MedicalRecord::class);
+    }
+
+    // Scopes
+    public function scopeApproved($query)
+    {
+        return $query->where('approval_status', 'approved');
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('approval_status', 'pending');
+    }
+
+    public function scopeRejected($query)
+    {
+        return $query->where('approval_status', 'rejected');
+    }
+
+    // Helper methods
+    public function isApproved(): bool
+    {
+        return $this->approval_status === 'approved';
+    }
+
+    public function isPending(): bool
+    {
+        return $this->approval_status === 'pending';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->approval_status === 'rejected';
     }
 }

@@ -5,17 +5,17 @@
 @section('content')
 <div class="max-w-2xl mx-auto">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Edit Appointment</h1>
+        <h1 class="text-2xl font-bold" style="color: #1e3a5f;">Edit Appointment</h1>
         @if(Auth::user()->isDoctor())
-            <a href="{{ route('doctor.appointments') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+            <a href="{{ route('doctor.appointments') }}" class="px-4 py-2 rounded" style="background-color: #495057; color: #ffffff;">
                 <i class="fas fa-arrow-left mr-2"></i>Back
             </a>
         @elseif(Auth::user()->isPetOwner())
-            <a href="{{ route('pet-owner.appointments') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+            <a href="{{ route('pet-owner.appointments') }}" class="px-4 py-2 rounded" style="background-color: #495057; color: #ffffff;">
                 <i class="fas fa-arrow-left mr-2"></i>Back
             </a>
         @else
-            <a href="{{ route('appointments.index') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+            <a href="{{ route('admin.appointments') }}" class="px-4 py-2 rounded" style="background-color: #495057; color: #ffffff;">
                 <i class="fas fa-arrow-left mr-2"></i>Back
             </a>
         @endif
@@ -23,7 +23,7 @@
 
     <div class="bg-white shadow-lg rounded-lg p-6">
         @if($errors->any())
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <div class="border px-4 py-3 rounded mb-4" style="background-color: #fee2e2; border-color: #ef4444; color: #991b1b;">
                 <ul class="list-disc list-inside">
                     @foreach($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -32,85 +32,126 @@
             </div>
         @endif
 
+        <!-- Appointment Information (Read-only) -->
+        <div class="mb-6 p-4 rounded-lg" style="background-color: #f8f9fa;">
+            <h3 class="text-lg font-semibold mb-3" style="color: #1e3a5f;">Appointment Details</h3>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium" style="color: #6b7280;">Pet Name</label>
+                    <p style="color: #1e3a5f;">{{ $appointment->pet->name }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium" style="color: #6b7280;">Owner</label>
+                    <p style="color: #1e3a5f;">{{ $appointment->pet->owner->user->name }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium" style="color: #6b7280;">Doctor</label>
+                    <p style="color: #1e3a5f;">{{ $appointment->doctor->user->name }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium" style="color: #6b7280;">Service</label>
+                    <p style="color: #1e3a5f;">{{ $appointment->service->name }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium" style="color: #6b7280;">Current Status</label>
+                    <span class="inline-block px-3 py-1 text-sm font-bold rounded-md
+                        @if($appointment->status === 'scheduled') text-white
+                        @elseif($appointment->status === 'completed') text-white
+                        @elseif($appointment->status === 'pending') text-white
+                        @else text-white
+                        @endif"
+                        style="background-color: 
+                        @if($appointment->status === 'scheduled') #fbbf24
+                        @elseif($appointment->status === 'completed') #0d6efd
+                        @elseif($appointment->status === 'pending') #c77e23
+                        @else #dc2626
+                        @endif;">
+                        {{ ucfirst($appointment->status) }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
         <form action="{{ route('appointments.update', $appointment->id) }}" method="POST" id="appointmentForm">
             @csrf
             @method('PUT')
 
-            <!-- Hidden fields to pass required IDs -->
             <input type="hidden" name="pet_id" value="{{ $appointment->pet_id }}">
             <input type="hidden" name="service_id" value="{{ $appointment->service_id }}">
+            <input type="hidden" name="doctor_id" value="{{ $appointment->doctor_id }}">
+            <input type="hidden" name="appointment_date" id="hiddenDate" value="{{ $appointment->appointment_date->format('Y-m-d') }}">
+            <input type="hidden" name="appointment_time" id="hiddenTime" value="{{ $appointment->appointment_time }}">
 
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Pet Name</label>
-                <input type="text" value="{{ $appointment->pet->name }}" disabled class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Owner</label>
-                <input type="text" value="{{ $appointment->pet->owner->user->name }}" disabled class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Doctor</label>
-                <input type="text" value="{{ $appointment->doctor->user->name }}" disabled class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Service</label>
-                <input type="text" value="{{ $appointment->service->name }}" disabled class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                <input type="date" name="appointment_date" id="appointment_date" 
+                <label class="block text-sm font-medium mb-2" style="color: #1e3a5f;">Date</label>
+                <input type="date" id="appointment_date" 
                     value="{{ $appointment->appointment_date->format('Y-m-d') }}" 
-                    min="{{ date('Y-m-d') }}"
-                    required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    min="{{ date('Y-m-d', strtotime('+1 day')) }}"
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none"
+                    style="border-color: #495057;">
             </div>
 
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Time</label>
-                <p class="text-sm text-gray-600 mb-2">Clinic hours: 8:00 AM - 6:00 PM</p>
+                <label class="block text-sm font-medium mb-2" style="color: #1e3a5f;">Time</label>
+                <p class="text-sm mb-2" style="color: #6b7280;">Clinic hours: 8:00 AM - 6:00 PM</p>
                 <div id="timeSlotContainer" class="mt-2">
-                    <p class="text-gray-500 text-sm italic">Loading time slots...</p>
+                    <p class="text-sm italic" style="color: #6b7280;">Loading time slots...</p>
                 </div>
-                <input type="hidden" name="appointment_time" id="appointment_time" 
-                    value="{{ $appointment->appointment_time }}" required>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
-                <textarea name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">{{ $appointment->notes }}</textarea>
             </div>
 
             <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select name="status" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="pending" {{ $appointment->status === 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="scheduled" {{ $appointment->status === 'scheduled' ? 'selected' : '' }}>Scheduled</option>
-                    <option value="completed" {{ $appointment->status === 'completed' ? 'selected' : '' }}>Completed</option>
-                    <option value="cancelled" {{ $appointment->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                </select>
+                <label class="block text-sm font-medium mb-2" style="color: #1e3a5f;">Notes (Optional)</label>
+                <textarea name="notes" rows="3" class="w-full px-4 py-2 border rounded-lg focus:outline-none" style="border-color: #495057;">{{ $appointment->notes }}</textarea>
             </div>
 
-            <div class="flex justify-end gap-3">
-                @if(Auth::user()->isDoctor())
-                    <a href="{{ route('doctor.appointments') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-                        Cancel
-                    </a>
-                @elseif(Auth::user()->isPetOwner())
-                    <a href="{{ route('pet-owner.appointments') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-                        Cancel
-                    </a>
-                @else
-                    <a href="{{ route('appointments.index') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-                        Cancel
-                    </a>
-                @endif
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    <i class="fas fa-save mr-2"></i>Update
-                </button>
+            <div class="flex justify-between items-center gap-4">
+                <div class="flex gap-4">
+                    @if(Auth::user()->isAdmin() || Auth::user()->isDoctor())
+                        @if($appointment->status !== 'completed')
+                        <button type="button" onclick="markAsCompleted()" class="px-4 py-2 text-white rounded transition" style="background-color: #0d6efd;">
+                            <i class="fas fa-check-circle mr-2"></i>Mark as Completed
+                        </button>
+                        @endif
+                        
+                        @if($appointment->status !== 'cancelled')
+                        <button type="button" onclick="cancelAppointment()" class="px-4 py-2 text-white rounded transition" style="background-color: #dc2626;">
+                            <i class="fas fa-times-circle mr-2"></i>Cancel Appointment
+                        </button>
+                        @endif
+                    @endif
+                </div>
+
+                <div class="flex gap-3">
+                    @if(Auth::user()->isDoctor())
+                        <a href="{{ route('doctor.appointments') }}" class="px-4 py-2 rounded" style="background-color: #495057; color: #ffffff;">
+                            Back
+                        </a>
+                    @elseif(Auth::user()->isPetOwner())
+                        <a href="{{ route('pet-owner.appointments') }}" class="px-4 py-2 rounded" style="background-color: #495057; color: #ffffff;">
+                            Back
+                        </a>
+                    @else
+                        <a href="{{ route('admin.appointments') }}" class="px-4 py-2 rounded" style="background-color: #495057; color: #ffffff;">
+                            Back
+                        </a>
+                    @endif
+                    <button type="submit" class="px-4 py-2 text-white rounded" style="background-color: #1e3a5f;">
+                        <i class="fas fa-save mr-2"></i>Save Changes
+                    </button>
+                </div>
             </div>
+        </form>
+
+        <!-- Action Forms (hidden) -->
+        <form id="completeForm" action="{{ route('appointments.mark-completed', $appointment->id) }}" method="POST" style="display: none;">
+            @csrf
+            @method('PUT')
+        </form>
+
+        <form id="cancelForm" action="{{ route('appointments.mark-cancelled', $appointment->id) }}" method="POST" style="display: none;">
+            @csrf
+            @method('PUT')
         </form>
     </div>
 </div>
@@ -118,56 +159,87 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.getElementById('appointment_date');
+    const hiddenDate = document.getElementById('hiddenDate');
+    const hiddenTime = document.getElementById('hiddenTime');
     const timeSlotContainer = document.getElementById('timeSlotContainer');
-    const timeInput = document.getElementById('appointment_time');
-    const currentTime = timeInput.value;
-
-    // Load time slots for the current date
-    loadTimeSlots(dateInput.value, currentTime);
+    const originalTime = '{{ $appointment->appointment_time }}';
+    const doctorId = {{ $appointment->doctor_id }};
 
     dateInput.addEventListener('change', function() {
-        loadTimeSlots(this.value, null);
+        hiddenDate.value = this.value;
+        loadTimeSlots(this.value, originalTime);
     });
 
-    function loadTimeSlots(selectedDate, selectedTime) {
+    loadTimeSlots(dateInput.value, originalTime);
+
+    function loadTimeSlots(selectedDate, currentTime) {
         if (!selectedDate) {
-            timeSlotContainer.innerHTML = '<p class="text-gray-500 text-sm italic">Please select a date first</p>';
+            timeSlotContainer.innerHTML = '<p class="text-sm italic" style="color: #6b7280;">Please select a date first</p>';
             return;
         }
 
-        timeSlotContainer.innerHTML = '<p class="text-gray-500 text-sm italic"><i class="fas fa-spinner fa-spin mr-2"></i>Loading available time slots...</p>';
+        timeSlotContainer.innerHTML = '<p class="text-sm italic" style="color: #6b7280;"><i class="fas fa-spinner fa-spin mr-2"></i>Loading available time slots...</p>';
 
-        fetch(`/appointments/available-slots?date=${selectedDate}`)
+        fetch(`/appointments/available-slots?date=${selectedDate}&doctor_id=${doctorId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
-                    timeSlotContainer.innerHTML = `<p class="text-red-500 text-sm">${data.error}</p>`;
+                    timeSlotContainer.innerHTML = `<p class="text-sm" style="color: #dc2626;">${data.error}</p>`;
                     return;
                 }
 
                 let html = '<div class="grid grid-cols-4 gap-2">';
                 data.forEach(slot => {
-                    // Current appointment's time slot should be available even if booked
-                    const isCurrentSlot = slot.time === selectedTime;
-                    const isAvailable = slot.available || isCurrentSlot;
+                    const isOriginalTime = slot.time === currentTime;
+                    const isCurrentlySelected = slot.time === hiddenTime.value;
+                    const isAvailable = slot.available || isOriginalTime;
                     
                     if (isAvailable) {
-                        const isSelected = slot.time === selectedTime;
+                        let bgColor = '';
+                        let textColor = '';
+                        let borderColor = '';
+                        let label = '';
+                        
+                        if (isOriginalTime && isCurrentlySelected) {
+                            bgColor = '#c77e23';
+                            textColor = '#ffffff';
+                            borderColor = '#c77e23';
+                            label = 'Current ⭐';
+                        } else if (isCurrentlySelected) {
+                            bgColor = '#0d6efd';
+                            textColor = '#ffffff';
+                            borderColor = '#0d6efd';
+                            label = 'Selected';
+                        } else if (isOriginalTime) {
+                            bgColor = '#fef3c7';
+                            textColor = '#c77e23';
+                            borderColor = '#c77e23';
+                            label = 'Current ⭐';
+                        } else {
+                            bgColor = '#f0f9ff';
+                            textColor = '#0d6efd';
+                            borderColor = '#0d6efd';
+                            label = 'Available';
+                        }
+                        
                         html += `
                             <button type="button" 
-                                class="time-slot-btn px-3 py-2 border-2 ${isSelected ? 'bg-blue-600 text-white border-blue-600' : 'border-green-500 bg-green-50 text-green-700'} rounded-md hover:bg-green-100 transition text-sm font-medium"
-                                data-time="${slot.time}">
+                                class="time-slot-btn px-3 py-2 border-2 rounded-md transition text-sm font-medium"
+                                style="background-color: ${bgColor}; color: ${textColor}; border-color: ${borderColor};"
+                                data-time="${slot.time}"
+                                data-is-original="${isOriginalTime}">
                                 ${slot.display}
-                                <span class="block text-xs ${isSelected ? 'text-white' : 'text-green-600'}">${isCurrentSlot ? 'Current' : 'Available'}</span>
+                                <span class="block text-xs" style="color: ${textColor}; font-weight: bold;">${label}</span>
                             </button>
                         `;
                     } else {
                         html += `
                             <button type="button" 
-                                class="px-3 py-2 border-2 border-red-300 bg-red-50 text-red-400 rounded-md cursor-not-allowed text-sm"
+                                class="px-3 py-2 border-2 rounded-md cursor-not-allowed text-sm"
+                                style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5;"
                                 disabled>
                                 ${slot.display}
-                                <span class="block text-xs text-red-400">Booked</span>
+                                <span class="block text-xs" style="color: #991b1b;">Booked</span>
                             </button>
                         `;
                     }
@@ -178,41 +250,93 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 document.querySelectorAll('.time-slot-btn').forEach(btn => {
                     btn.addEventListener('click', function() {
+                        const newTime = this.dataset.time;
+                        const isOriginal = this.dataset.isOriginal === 'true';
+                        
+                        hiddenTime.value = newTime;
+                        
                         document.querySelectorAll('.time-slot-btn').forEach(b => {
-                            b.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
-                            b.classList.add('bg-green-50', 'text-green-700', 'border-green-500');
-                            b.querySelector('span').classList.remove('text-white');
-                            b.querySelector('span').classList.add('text-green-600');
+                            const bIsOriginal = b.dataset.isOriginal === 'true';
+                            const bTime = b.dataset.time;
+                            
+                            let bgColor, textColor, borderColor, label;
+                            
+                            if (bTime === newTime) {
+                                if (bIsOriginal) {
+                                    bgColor = '#c77e23';
+                                    textColor = '#ffffff';
+                                    borderColor = '#c77e23';
+                                    label = 'Current ⭐';
+                                } else {
+                                    bgColor = '#0d6efd';
+                                    textColor = '#ffffff';
+                                    borderColor = '#0d6efd';
+                                    label = 'Selected';
+                                }
+                            } else if (bIsOriginal) {
+                                bgColor = '#fef3c7';
+                                textColor = '#c77e23';
+                                borderColor = '#c77e23';
+                                label = 'Current ⭐';
+                            } else {
+                                bgColor = '#f0f9ff';
+                                textColor = '#0d6efd';
+                                borderColor = '#0d6efd';
+                                label = 'Available';
+                            }
+                            
+                            b.style.backgroundColor = bgColor;
+                            b.style.color = textColor;
+                            b.style.borderColor = borderColor;
+                            
+                            const span = b.querySelector('span');
+                            span.style.color = textColor;
+                            span.textContent = label;
                         });
-                        
-                        this.classList.remove('bg-green-50', 'text-green-700', 'border-green-500');
-                        this.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
-                        this.querySelector('span').classList.remove('text-green-600');
-                        this.querySelector('span').classList.add('text-white');
-                        
-                        timeInput.value = this.dataset.time;
+                    });
+                    
+                    btn.addEventListener('mouseenter', function() {
+                        if (!this.disabled) {
+                            this.style.transform = 'translateY(-2px)';
+                            this.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                        }
+                    });
+                    
+                    btn.addEventListener('mouseleave', function() {
+                        this.style.transform = 'translateY(0)';
+                        this.style.boxShadow = 'none';
                     });
                 });
             })
             .catch(error => {
                 console.error('Error:', error);
-                timeSlotContainer.innerHTML = '<p class="text-red-500 text-sm">Error loading time slots. Please try again.</p>';
+                timeSlotContainer.innerHTML = '<p class="text-sm" style="color: #dc2626;">Error loading time slots. Please try again.</p>';
             });
     }
-
-    document.getElementById('appointmentForm').addEventListener('submit', function(e) {
-        if (!timeInput.value) {
-            e.preventDefault();
-            alert('Please select a time slot');
-        }
-    });
 });
+
+function markAsCompleted() {
+    if (confirm('Are you sure you want to mark this appointment as completed? This action cannot be undone.')) {
+        document.getElementById('completeForm').submit();
+    }
+}
+
+function cancelAppointment() {
+    if (confirm('Are you sure you want to cancel this appointment? The pet owner will be notified.')) {
+        document.getElementById('cancelForm').submit();
+    }
+}
 </script>
 
 <style>
-.time-slot-btn:hover:not(.bg-blue-600) {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+.time-slot-btn {
+    transition: all 0.15s ease-in-out;
+}
+
+input[type="date"]:focus, 
+textarea:focus {
+    border-color: #1e3a5f !important;
+    box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.2) !important;
 }
 </style>
 @endsection

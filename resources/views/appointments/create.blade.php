@@ -4,15 +4,25 @@
 
 @section('content')
 <style>
+    :root {
+        --navy: #1e3a5f;
+        --gold: #d4931d;
+        --yellow: #fcd34d;
+        --charcoal: #2d3748;
+        --blue-primary: #003d82;
+        --blue-bright: #0066cc;
+    }
+
     /* Time Slot Styling */
     .time-slot-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 12px;
         padding: 20px;
-        background: #f9fafb;
+        background: #f8f9fa;
         border-radius: 12px;
         min-height: 200px;
+        border: 2px solid #d1d5db;
     }
     
     @media (max-width: 768px) {
@@ -24,10 +34,10 @@
     .time-slot-btn {
         position: relative;
         padding: 16px 12px;
-        border: 2px solid #10b981;
+        border: 2px solid #0066cc;
         background: white;
-        color: #1f2937;
-        border-radius: 12px;
+        color: var(--charcoal);
+        border-radius: 8px;
         cursor: pointer;
         transition: all 0.2s ease;
         text-align: center;
@@ -36,21 +46,20 @@
         flex-direction: column;
         align-items: center;
         gap: 4px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
     
     .time-slot-btn:hover {
-        background: #ecfdf5;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        border-color: #059669;
+        background: #e3f2fd;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 102, 204, 0.15);
     }
     
     .time-slot-btn.selected {
-        background: #2563eb !important;
+        background: #0066cc !important;
         color: white !important;
-        border-color: #2563eb !important;
-        box-shadow: 0 4px 12px rgba(37,99,235,0.3);
-        transform: scale(1.02);
+        border-color: #0066cc !important;
+        box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
     }
     
     .time-slot-btn.selected .slot-icon,
@@ -63,7 +72,7 @@
         border: 2px solid #e5e7eb;
         background: #f9fafb;
         color: #9ca3af;
-        border-radius: 12px;
+        border-radius: 8px;
         cursor: not-allowed;
         text-align: center;
         font-size: 14px;
@@ -82,12 +91,12 @@
     .slot-status {
         font-size: 11px;
         font-weight: 600;
-        color: #10b981;
+        color: #0066cc;
     }
     
     .slot-icon {
         font-size: 14px;
-        color: #10b981;
+        color: #0066cc;
         margin-bottom: 2px;
     }
     
@@ -95,12 +104,12 @@
         grid-column: 1 / -1;
         text-align: center;
         padding: 40px;
-        color: #6b7280;
+        color: #718096;
     }
     
     .empty-state i {
         font-size: 48px;
-        color: #d1d5db;
+        color: #93c5fd;
         margin-bottom: 16px;
     }
     
@@ -108,7 +117,7 @@
         grid-column: 1 / -1;
         text-align: center;
         padding: 40px;
-        color: #2563eb;
+        color: #0066cc;
     }
     
     .loading-state i {
@@ -124,9 +133,9 @@
     
     /* Doctor Card */
     .doctor-card {
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        border: 1px solid #93c5fd;
-        border-radius: 12px;
+        background: #fef3c7;
+        border: 2px solid #f59e0b;
+        border-radius: 8px;
         padding: 20px;
         margin: 20px 0;
     }
@@ -135,7 +144,7 @@
         width: 50px;
         height: 50px;
         border-radius: 50%;
-        background: #2563eb;
+        background: #1e3a5f;
         color: white;
         display: flex;
         align-items: center;
@@ -155,23 +164,24 @@
         display: block;
         font-size: 14px;
         font-weight: 600;
-        color: #374151;
+        color: var(--charcoal);
         margin-bottom: 8px;
     }
     
     .form-label i {
-        color: #2563eb;
+        color: #f59e0b;
         margin-right: 8px;
     }
     
     .clinic-hours-badge {
         display: inline-block;
-        background: #dbeafe;
-        color: #1e40af;
+        background: #fef3c7;
+        color: var(--charcoal);
         padding: 6px 12px;
         border-radius: 999px;
         font-size: 12px;
         font-weight: 600;
+        border: 1px solid #f59e0b;
     }
     
     .section-header {
@@ -186,11 +196,11 @@
         position: fixed;
         top: 20px;
         right: 20px;
-        background: #10b981;
+        background: #0066cc;
         color: white;
         padding: 16px 24px;
         border-radius: 8px;
-        box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+        box-shadow: 0 10px 20px rgba(0, 102, 204, 0.3);
         z-index: 1000;
         animation: slideIn 0.3s ease;
         display: flex;
@@ -199,7 +209,8 @@
     }
     
     .notification.error {
-        background: #ef4444;
+        background: #dc2626;
+        box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
     }
     
     @keyframes slideIn {
@@ -218,24 +229,103 @@
     input:focus,
     textarea:focus {
         outline: none;
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        border-color: #0066cc;
+        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    }
+
+    /* Card styling */
+    .form-card {
+        background: white;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+    }
+
+    /* Header styling */
+    .page-header {
+        background: #2c3e50;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    .page-header h2 {
+        color: white;
+    }
+
+    .page-header h2 i {
+        color: #fbbf24;
+    }
+
+    .page-header p {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Input styling */
+    input[type="date"],
+    select,
+    textarea {
+        border: 1px solid #d1d5db;
+        transition: all 0.2s;
+    }
+
+    input[type="date"]:hover,
+    select:hover,
+    textarea:hover {
+        border-color: #9ca3af;
+    }
+
+    /* Button styling */
+    .btn-back {
+        background: #f3f4f6;
+        color: var(--charcoal);
+        border: 1px solid #d1d5db;
+    }
+
+    .btn-back:hover {
+        background: #e5e7eb;
+    }
+
+    .btn-primary {
+        background: #0066cc;
+        border: none;
+    }
+
+    .btn-primary:hover {
+        background: #0052a3;
+    }
+
+    .btn-primary i {
+        color: white;
+    }
+
+    /* Error messages */
+    .error-box {
+        background: #fef2f2;
+        border-left: 4px solid #ef4444;
     }
 </style>
 
-<div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-8">
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <h2 class="text-2xl font-bold text-gray-800">Schedule an Appointment</h2>
-            <p class="text-sm text-gray-600 mt-1">Fill in the details below to book an appointment</p>
+<div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-8 form-card">
+    <div class="page-header">
+        <div class="flex justify-between items-center">
+            <div>
+                <h2 class="text-2xl font-bold">
+                    <i class="fas fa-calendar-plus mr-2"></i>Schedule an Appointment
+                </h2>
+                <p class="text-sm mt-1">Fill in the details below to book an appointment</p>
+            </div>
+            @php
+                $backRoute = Auth::user()->role === 'doctor' ? 'doctor.appointments' : 
+                            (Auth::user()->role === 'pet_owner' ? 'pet-owner.appointments' : 'admin.appointments');
+            @endphp
+            <a href="{{ route($backRoute) }}" class="px-4 py-2 btn-back rounded-lg transition-all" style="text-decoration: none;">
+                <i class="fas fa-arrow-left mr-2"></i>Back
+            </a>
         </div>
-        <a href="{{ route('appointments.index') }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400" style="text-decoration: none;">
-            <i class="fas fa-arrow-left mr-2"></i>Back
-        </a>
     </div>
 
     @if($errors->any())
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded mb-4">
+        <div class="error-box text-red-700 px-4 py-3 rounded-lg mb-4">
             <p class="font-semibold mb-2"><i class="fas fa-exclamation-circle mr-2"></i>Please fix the following errors:</p>
             <ul class="list-disc list-inside">
                 @foreach($errors->all() as $error)
@@ -292,9 +382,9 @@
                     {{ strtoupper(substr($doctor->user->name, 0, 1)) }}
                 </div>
                 <div>
-                    <p style="font-weight: 600; color: #1f2937;">{{ $doctor->user->name }}</p>
+                    <p style="font-weight: 700; color: var(--charcoal); font-size: 16px;">{{ $doctor->user->name }}</p>
                     @if($doctor->specialization)
-                        <p style="font-size: 14px; color: #6b7280;">{{ $doctor->specialization }}</p>
+                        <p style="font-size: 14px; color: #6b7280; font-weight: 500;">{{ $doctor->specialization }}</p>
                     @endif
                 </div>
             </div>
@@ -307,7 +397,7 @@
             </label>
             <input type="date" name="appointment_date" id="appointment_date"
                 value="{{ old('appointment_date') }}"
-                min="{{ date('Y-m-d') }}"
+                min="{{ date('Y-m-d', strtotime('+1 day')) }}"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
             @error('appointment_date') <span class="text-red-500 text-sm"><i class="fas fa-exclamation-circle"></i> {{ $message }}</span> @enderror
         </div>
@@ -346,10 +436,10 @@
 
         <!-- Submit Buttons -->
         <div class="flex justify-end gap-3" style="padding-top: 20px; border-top: 1px solid #e5e7eb;">
-            <a href="{{ route('appointments.index') }}" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400" style="text-decoration: none;">
+            <a href="{{ route($backRoute) }}" class="px-6 py-2 btn-back rounded-lg font-medium transition-all" style="text-decoration: none;">
                 <i class="fas fa-times mr-2"></i>Cancel
             </a>
-            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <button type="submit" class="px-6 py-2 btn-primary text-white rounded-lg font-medium transition-all">
                 <i class="fas fa-calendar-plus mr-2"></i>Schedule Appointment
             </button>
         </div>

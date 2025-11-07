@@ -1,191 +1,231 @@
 @extends('layouts.app')
 
-@section('title', 'Manage Pets')
+@section('title', 'Pet Management')
 
 @section('content')
-<div class="space-y-6">
-    <!-- Header -->
+<div class="container mx-auto px-4">
     <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Manage Pets</h1>
-            <p class="text-gray-600">View and manage all pets in the system</p>
+        <h1 class="text-3xl font-bold text-[#2d3748]">
+            <i class="fas fa-paw text-[#fcd34d] mr-2"></i>Pet Management
+        </h1>
+        <a href="{{ route('pets.create') }}" 
+           class="inline-flex items-center px-4 py-2 bg-[#0066cc] text-white rounded-lg hover:bg-[#003d82] transition-colors shadow-md">
+            <i class="fas fa-plus-circle mr-2 text-[#fcd34d]"></i>
+            Add New Pet
+        </a>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="mb-6 bg-white rounded-lg shadow-md p-4">
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('admin.pets') }}" 
+               class="px-4 py-2 rounded-lg {{ !request('approval_status') ? 'bg-[#0066cc] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                <i class="fas fa-list mr-1"></i> All Pets
+            </a>
+            <a href="{{ route('admin.pets', ['approval_status' => 'pending']) }}" 
+               class="px-4 py-2 rounded-lg {{ request('approval_status') === 'pending' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                <i class="fas fa-clock mr-1"></i> Pending Approval
+                @if($pendingCount ?? 0 > 0)
+                    <span class="ml-1 px-2 py-0.5 bg-white text-yellow-700 rounded-full text-xs font-bold">{{ $pendingCount }}</span>
+                @endif
+            </a>
+            <a href="{{ route('admin.pets', ['approval_status' => 'approved']) }}" 
+               class="px-4 py-2 rounded-lg {{ request('approval_status') === 'approved' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                <i class="fas fa-check-circle mr-1"></i> Approved
+            </a>
+            <a href="{{ route('admin.pets', ['approval_status' => 'rejected']) }}" 
+               class="px-4 py-2 rounded-lg {{ request('approval_status') === 'rejected' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                <i class="fas fa-times-circle mr-1"></i> Rejected
+            </a>
         </div>
     </div>
 
-    <!-- Search and Filter -->
-    <div class="mb-4 flex items-center justify-between gap-4">
-        <div>
-            <select id="speciesFilter" class="bg-yellow-300 hover:bg-yellow-400 text-gray-800 px-4 py-2 rounded font-semibold cursor-pointer border-0">
-                <option value="">All Species</option>
-                <option value="dog" {{ request('species') == 'dog' ? 'selected' : '' }}>Dog</option>
-                <option value="cat" {{ request('species') == 'cat' ? 'selected' : '' }}>Cat</option>
-                <option value="bird" {{ request('species') == 'bird' ? 'selected' : '' }}>Bird</option>
-                <option value="rabbit" {{ request('species') == 'rabbit' ? 'selected' : '' }}>Rabbit</option>
-                <option value="other" {{ request('species') == 'other' ? 'selected' : '' }}>Other</option>
-            </select>
-        </div>
+    <!-- Search Bar -->
+    <div class="mb-6">
+        <form method="GET" action="{{ route('admin.pets') }}" class="flex gap-2">
+            <input type="hidden" name="approval_status" value="{{ request('approval_status') }}">
+            <input type="text" name="search" 
+                   class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0066cc]" 
+                   placeholder="Search pets by name, species, breed, or owner..." 
+                   value="{{ request('search') }}">
+            <button type="submit" 
+                    class="px-6 py-2 bg-[#0066cc] text-white rounded-lg hover:bg-[#003d82]">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </form>
+    </div>
 
-        <div class="ml-auto w-full max-w-md">
-            <div class="relative">
-                <input id="searchInput" type="text" value="{{ request('search') }}" placeholder="Search pet name, breed, owner..." class="w-full px-4 py-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-blue-500">
-                <i class="fas fa-search absolute right-3 top-2.5 text-gray-500"></i>
+    @if(session('success'))
+        <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
+            <div class="flex">
+                <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                <p class="text-green-700">{{ session('success') }}</p>
             </div>
         </div>
+    @endif
 
-        @if(request('search') || request('species'))
-            <a href="{{ route('admin.pets') }}" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Clear</a>
-        @endif
-    </div>
-
-    <div id="petsContainer">
-        @if($pets->count())
-        <div class="bg-white shadow rounded-lg overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Breed</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach($pets as $pet)
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0 h-10 w-10 mr-4">
-                                        <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                            <i class="fas fa-paw text-blue-600"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="text-sm font-medium text-gray-900">{{ $pet->name }}</div>
-                                        <div class="text-xs text-gray-500">{{ ucfirst($pet->gender ?? 'Unknown') }}</div>
-                                    </div>
+    <!-- Pets Table -->
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-[#1e3a5f] text-white">
+                <tr>
+                    <th class="px-4 py-3">#</th>
+                    <th class="px-4 py-3">Pet Name</th>
+                    <th class="px-4 py-3">Species/Breed</th>
+                    <th class="px-4 py-3">Owner</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3">Registered</th>
+                    <th class="px-4 py-3 text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($pets as $pet)
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-3">{{ $loop->iteration }}</td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-[#fcd34d] rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-paw text-[#1e3a5f]"></i>
                                 </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ ucfirst($pet->species) }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $pet->breed ?? 'N/A' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $pet->owner->user->name ?? 'No Owner' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-600">{{ $pet->age ? $pet->age . ' yrs' : 'N/A' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div class="flex gap-2">
-                                    <a href="{{ route('pets.show', $pet->id) }}" class="text-blue-600 hover:text-blue-900" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ route('pets.edit', $pet->id) }}" class="text-green-600 hover:text-green-900" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <form action="{{ route('admin.pets.destroy', $pet->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this pet?')">
+                                <div>
+                                    <p class="font-semibold text-gray-800">{{ $pet->name }}</p>
+                                    <p class="text-xs text-gray-500">Age: {{ $pet->age }} years</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <p class="text-gray-800">{{ ucfirst($pet->species) }}</p>
+                            @if($pet->breed)
+                                <p class="text-xs text-gray-500">{{ $pet->breed }}</p>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3">
+                            <p class="text-gray-800">{{ $pet->owner->user->name }}</p>
+                            <p class="text-xs text-gray-500">{{ $pet->owner->user->email }}</p>
+                        </td>
+                        <td class="px-4 py-3">
+                            @if($pet->approval_status === 'pending')
+                                <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold inline-flex items-center">
+                                    <i class="fas fa-clock mr-1"></i> Pending
+                                </span>
+                            @elseif($pet->approval_status === 'approved')
+                                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold inline-flex items-center">
+                                    <i class="fas fa-check-circle mr-1"></i> Approved
+                                </span>
+                            @elseif($pet->approval_status === 'rejected')
+                                <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold inline-flex items-center">
+                                    <i class="fas fa-times-circle mr-1"></i> Rejected
+                                </span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {{ $pet->created_at->format('M d, Y') }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="{{ route('pets.show', $pet->id) }}" 
+                                   class="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                                   title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                
+                                @if($pet->approval_status === 'pending')
+                                    <!-- Approve Button -->
+                                    <form action="{{ route('pets.approve', $pet->id) }}" method="POST" class="inline">
                                         @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-900" title="Delete">
-                                            <i class="fas fa-trash"></i>
+                                        <button type="submit" 
+                                                class="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                                                onclick="return confirm('Approve this pet registration?')"
+                                                title="Approve">
+                                            <i class="fas fa-check"></i>
                                         </button>
                                     </form>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+                                    
+                                    <!-- Reject Button -->
+                                    <button onclick="showRejectModal({{ $pet->id }}, '{{ $pet->name }}')"
+                                            class="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
+                                            title="Reject">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                @endif
 
-            <div class="mt-4 px-6 pb-6">
-                {{ $pets->links() }}
+                                <a href="{{ route('pets.edit', $pet->id) }}" 
+                                   class="px-3 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600"
+                                   title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-paw text-4xl mb-2 text-gray-300"></i>
+                            <p>No pets found{{ request('search') ? ' for "'.request('search').'"' : '' }}.</p>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-6">
+        {{ $pets->links() }}
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-times-circle text-red-500 mr-2"></i>Reject Pet Registration
+        </h3>
+        <p class="text-gray-600 mb-4">
+            Pet: <span id="rejectPetName" class="font-semibold"></span>
+        </p>
+        <form id="rejectForm" method="POST">
+            @csrf
+            <div class="mb-4">
+                <label for="rejection_reason" class="block text-sm font-medium text-gray-700 mb-2">
+                    Reason for Rejection *
+                </label>
+                <textarea id="rejection_reason" name="rejection_reason" rows="4" required
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                          placeholder="Please provide a reason for rejecting this pet registration..."></textarea>
             </div>
-        </div>
-        @else
-        <div class="bg-white shadow rounded-lg">
-            <div class="p-12 text-center">
-                <div class="flex justify-center mb-4">
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-paw text-3xl text-gray-400"></i>
-                    </div>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">No Pets Found</h3>
-                <p class="text-gray-600">
-                    @if(request('search') || request('species'))
-                        No pets match your search criteria.
-                    @else
-                        No pets in the system yet.
-                    @endif
-                </p>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeRejectModal()"
+                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+                    <i class="fas fa-times-circle mr-1"></i> Reject
+                </button>
             </div>
-        </div>
-        @endif
+        </form>
     </div>
 </div>
 
 <script>
-(function(){
-    const searchInput = document.getElementById('searchInput');
-    const speciesFilter = document.getElementById('speciesFilter');
-    const petsContainer = document.getElementById('petsContainer');
-    const baseUrl = "{{ route('admin.pets') }}";
+function showRejectModal(petId, petName) {
+    document.getElementById('rejectPetName').textContent = petName;
+    document.getElementById('rejectForm').action = `/pets/${petId}/reject`;
+    document.getElementById('rejectModal').classList.remove('hidden');
+}
 
-    function debounce(fn, delay) {
-        let timer;
-        return function(...args){
-            clearTimeout(timer);
-            timer = setTimeout(() => fn.apply(this, args), delay);
-        }
+function closeRejectModal() {
+    document.getElementById('rejectModal').classList.add('hidden');
+    document.getElementById('rejection_reason').value = '';
+}
+
+// Close modal when clicking outside
+document.getElementById('rejectModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeRejectModal();
     }
-
-    async function fetchPets(searchQuery = '', species = ''){
-        const params = new URLSearchParams();
-        if(searchQuery) params.append('search', searchQuery);
-        if(species) params.append('species', species);
-        
-        const url = baseUrl + (params.toString() ? ('?' + params.toString()) : '');
-
-        try{
-            const res = await fetch(url, { 
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }, 
-                credentials: 'same-origin' 
-            });
-            
-            if(!res.ok) {
-                console.warn('Fetch pets failed', res.status);
-                return;
-            }
-            
-            const text = await res.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(text, 'text/html');
-            const newContainer = doc.getElementById('petsContainer');
-            
-            if(newContainer && petsContainer){
-                petsContainer.innerHTML = newContainer.innerHTML;
-            }
-        } catch(e) { 
-            console.error('Error fetching pets:', e); 
-        }
-    }
-
-    const debouncedFetch = debounce(function(){
-        const query = searchInput.value.trim();
-        const species = speciesFilter.value;
-        fetchPets(query, species);
-    }, 300);
-
-    searchInput.addEventListener('input', debouncedFetch);
-    
-    speciesFilter.addEventListener('change', function(){
-        const query = searchInput.value.trim();
-        const species = this.value;
-        fetchPets(query, species);
-    });
-})();
+});
 </script>
 
-<style>
-    .hover\:bg-gray-50:hover {
-        background-color: rgba(249, 250, 251, 1);
-    }
-</style>
 @endsection

@@ -10,7 +10,7 @@
             <h1 class="text-3xl font-bold text-gray-900">Medical Records</h1>
             <p class="text-gray-600 mt-1">View and manage patient medical records</p>
         </div>
-        @if(!Auth::user()->isAdmin())
+        @if(Auth::user()->isDoctor())
         <a href="{{ route('medical-records.create') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
             <i class="fas fa-plus mr-2"></i>
             Add Medical Record
@@ -36,21 +36,22 @@
     </div>
 
     <!-- Medical Records Table -->
+    <div id="recordsContainer">
     @if($medicalRecords->count())
-        <div id="recordsContainer" class="bg-gray-50 rounded-lg shadow overflow-hidden">
+        <div class="bg-gray-50 rounded-lg shadow overflow-hidden">
             <table class="w-full">
                 <thead class="bg-gray-100 border-b border-gray-200">
                     <tr>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">#</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Pet</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Owner</th>
-                        @if(!Auth::user()->isAdmin())
+                        @if(Auth::user()->isDoctor())
                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Doctor</th>
                         @endif
                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Diagnosis</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Treatment</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Date</th>
-                        @if(!Auth::user()->isAdmin())
+                        @if(Auth::user()->isDoctor())
                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Status</th>
                         @endif
                         <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Actions</th>
@@ -69,7 +70,7 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $record->pet->owner->user->name }}</td>
-                        @if(!Auth::user()->isAdmin())
+                        @if(Auth::user()->isDoctor())
                         <td class="px-6 py-4 text-sm text-gray-600">{{ $record->doctor->user->name }}</td>
                         @endif
                         <td class="px-6 py-4 text-sm text-gray-600">
@@ -79,7 +80,7 @@
                             <span class="truncate max-w-xs" title="{{ $record->treatment }}">{{ Str::limit($record->treatment, 30) }}</span>
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $record->created_at->format('M d, Y') }}</td>
-                        @if(!Auth::user()->isAdmin())
+                        @if(Auth::user()->isDoctor())
                         <td class="px-6 py-4">
                             @if($record->follow_up_date && $record->follow_up_date >= now()->toDateString())
                                 <span class="text-yellow-800 font-semibold">Follow-up</span>
@@ -89,12 +90,12 @@
                         </td>
                         @endif
                         <td class="px-6 py-4">
-                            @if(Auth::user()->isAdmin())
+                            @if(Auth::user()->isPetOwner())
                                 <a href="{{ route('medical-records.show', $record->id) }}" class="inline-flex items-center px-3 py-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded transition text-sm font-medium" title="View Details">
                                     <i class="fas fa-eye mr-2"></i>
                                     View
                                 </a>
-                            @else
+                            @elseif(Auth::user()->isDoctor())
                                 <div class="flex gap-2">
                                     <a href="{{ route('medical-records.show', $record->id) }}" class="text-blue-600 hover:text-blue-900 transition" title="View Details">
                                         <i class="fas fa-eye"></i>
@@ -124,7 +125,7 @@
         </div>
     @else
         <!-- Empty State -->
-        <div id="recordsContainer" class="bg-gray-50 rounded-lg shadow">
+        <div class="bg-gray-50 rounded-lg shadow">
             <div class="bg-blue-600 px-6 py-4">
                 <h2 class="text-lg font-semibold text-white">Medical Records</h2>
             </div>
@@ -142,7 +143,7 @@
                         Get started by creating your first medical record.
                     @endif
                 </p>
-                @if(!Auth::user()->isAdmin() && !request('search'))
+                @if(Auth::user()->isDoctor() && !request('search'))
                 <a href="{{ route('medical-records.create') }}" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition">
                     <i class="fas fa-plus"></i>
                     Create First Record
@@ -151,6 +152,7 @@
             </div>
         </div>
     @endif
+    </div>
 </div>
 
 <script>

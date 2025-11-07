@@ -57,48 +57,33 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:500',
-            'role' => 'required|in:pet_owner,doctor',
+            'phone' => 'required|string|min:11|max:11',
+            'address' => 'required|string|max:500',
+            'emergency_contact' => 'nullable|string|max:255',
+            'emergency_phone' => 'nullable|string|min:11|max:11',
         ]);
 
+        // All registrations are automatically pet_owner
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
             'address' => $request->address,
-            'role' => $request->role,
+            'role' => 'pet_owner', // Automatically set to pet_owner
         ]);
 
-        // Create role-specific profile
-        if ($request->role === 'pet_owner') {
-            PetOwner::create([
-                'user_id' => $user->id,
-                'emergency_contact' => $request->emergency_contact,
-                'emergency_phone' => $request->emergency_phone,
-                'notes' => $request->notes,
-            ]);
-        } elseif ($request->role === 'doctor') {
-            $request->validate([
-                'specialization' => 'required|string|max:255',
-                'license_number' => 'required|string|max:50|unique:doctors',
-                'experience_years' => 'required|integer|min:0',
-                'bio' => 'nullable|string|max:1000',
-            ]);
-
-            Doctor::create([
-                'user_id' => $user->id,
-                'specialization' => $request->specialization,
-                'license_number' => $request->license_number,
-                'experience_years' => $request->experience_years,
-                'bio' => $request->bio,
-            ]);
-        }
+        // Create pet_owner profile
+        PetOwner::create([
+            'user_id' => $user->id,
+            'emergency_contact' => $request->emergency_contact,
+            'emergency_phone' => $request->emergency_phone,
+            'notes' => null,
+        ]);
 
         Auth::login($user);
 
-        return redirect()->route($user->role . '.dashboard');
+        return redirect()->route('pet-owner.dashboard');
     }
 
     public function logout(Request $request)

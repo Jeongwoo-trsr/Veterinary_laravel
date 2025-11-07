@@ -5,151 +5,148 @@
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <!-- Header Section -->
-    <div class="flex justify-between items-center mb-8">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">Medical Records</h1>
-            <p class="text-gray-600 mt-1">Manage and view patient medical records</p>
-        </div>
-        <a href="{{ route('medical-records.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold mb-1" style="color: #2c3e50;">Medical Records</h1>
+        <p style="color: #5d6d7e;">Manage and view patient medical records</p>
+    </div>
+
+    <!-- Add Button and Search Section -->
+    <div class="flex justify-between items-center gap-4 mb-6">
+        <a href="{{ route('medical-records.create') }}" class="text-white px-6 py-2.5 rounded-lg flex items-center gap-2 transition" style="background-color: #0d5cb6;">
             <i class="fas fa-plus"></i>
             Add Medical Record
         </a>
-    </div>
 
-    <!-- Success/Error Messages -->
+        <form method="GET" action="{{ route('doctor.medical-records') }}" class="flex items-center gap-3 max-w-md flex-1">
+            <div class="relative flex-1">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2" style="color: #95a5a6;"></i>
+                <input id="searchInput" type="text" name="search" value="{{ request('search') }}" placeholder="Search pet, owner, service..." 
+                    class="pl-10 pr-4 py-2.5 border rounded-lg bg-white focus:ring-2 focus:border-transparent w-full" style="border-color: #d1d5db; outline: none;">
+            </div>
+
+            @if(request('search'))
+                <a href="{{ route('doctor.medical-records') }}" class="px-4 py-2.5 rounded-lg transition whitespace-nowrap" style="background-color: #95a5a6; color: #ffffff;">
+                    Clear
+                </a>
+            @endif
+        </form>
+    </div>
     @if (session('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6 flex justify-between items-center">
+        <div class="border px-4 py-3 rounded-lg mb-6 flex justify-between items-center" style="background-color: #d4edda; border-color: #c3e6cb; color: #155724;">
             <span>{{ session('success') }}</span>
-            <button onclick="this.parentElement.style.display='none';" class="text-green-700 hover:text-green-900">
+            <button onclick="this.parentElement.style.display='none';" style="color: #155724;">
                 <i class="fas fa-times"></i>
             </button>
         </div>
     @endif
 
     @if (session('error'))
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6 flex justify-between items-center">
+        <div class="border px-4 py-3 rounded-lg mb-6 flex justify-between items-center" style="background-color: #f8d7da; border-color: #f5c6cb; color: #721c24;">
             <span>{{ session('error') }}</span>
-            <button onclick="this.parentElement.style.display='none';" class="text-red-700 hover:text-red-900">
+            <button onclick="this.parentElement.style.display='none';" style="color: #721c24;">
                 <i class="fas fa-times"></i>
             </button>
         </div>
     @endif
 
-    <!-- Search Section -->
-    <div class="mb-8 flex justify-between items-center gap-4">
-        <form method="GET" action="{{ route('doctor.medical-records') }}" class="flex items-center gap-4 w-full">
-            <div class="relative ml-auto w-full max-w-md">
-                <input id="searchInput" type="text" name="search" value="{{ request('search') }}" placeholder="Search pet, owner, service..." 
-                    class="px-4 py-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full">
-            </div>
-
-            @if(request('search'))
-                <a href="{{ route('doctor.medical-records') }}" class="ml-3 px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Clear</a>
-            @endif
-        </form>
-    </div>
-
     <!-- Records Table -->
-    @if($medicalRecords->count())
-        <div id="recordsContainer" class="bg-white rounded-lg shadow-sm overflow-hidden">
-            <table class="w-full">
-                <thead class="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">#</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Pet Name</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Owner</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Diagnosis</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Treatment</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Date</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Status</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @foreach($medicalRecords as $record)
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 text-sm text-gray-900">{{ $loop->iteration + ($medicalRecords->currentPage() - 1) * $medicalRecords->perPage() }}</td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-paw text-blue-600 text-sm"></i>
+    <div id="recordsContainer">
+        @if($medicalRecords->count())
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <table class="w-full">
+                    <thead class="border-b" style="background-color: #34495e; border-color: #e5e7eb;">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-sm font-semibold" style="color: #ffffff;">#</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold" style="color: #ffffff;">Pet Name</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold" style="color: #ffffff;">Owner</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold" style="color: #ffffff;">Diagnosis</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold" style="color: #ffffff;">Treatment</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold" style="color: #ffffff;">Date</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold" style="color: #ffffff;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y" style="border-color: #e5e7eb;">
+                        @foreach($medicalRecords as $record)
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4 text-sm" style="color: #2c3e50;">{{ $loop->iteration + ($medicalRecords->currentPage() - 1) * $medicalRecords->perPage() }}</td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background-color: #d6eaf8;">
+                                        <i class="fas fa-paw" style="color: #0d5cb6;"></i>
+                                    </div>
+                                    <span class="font-medium" style="color: #2c3e50;">{{ $record->pet->name }}</span>
                                 </div>
-                                <span class="font-medium text-gray-900">{{ $record->pet->name }}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ $record->pet->owner->user->name ?? 'N/A' }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">
-                            <span class="truncate max-w-xs" title="{{ $record->diagnosis }}">{{ Str::limit($record->diagnosis, 30) }}</span>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-600">
-                            <span class="truncate max-w-xs" title="{{ $record->treatment }}">{{ Str::limit($record->treatment, 30) }}</span>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-900">{{ $record->created_at->format('M d, Y') }}</td>
-                        <td class="px-6 py-4">
-                            @if($record->follow_up_date && $record->follow_up_date >= now()->toDateString())
-                                <span class="text-yellow-800 font-semibold">Follow-up</span>
-                            @else
-                                <span class="text-green-800 font-semibold">Resolved</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex gap-4">
-                                <a href="{{ route('medical-records.show', $record->id) }}" class="text-blue-600 hover:text-blue-900 transition" title="View Details">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{{ route('medical-records.edit', $record->id) }}" class="text-green-600 hover:text-green-900 transition" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form action="{{ route('medical-records.destroy', $record->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900 transition" title="Delete">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Pagination -->
-        <div class="mt-6">
-            {{ $medicalRecords->links() }}
-        </div>
-    @else
-        <!-- Empty State -->
-        <div id="recordsContainer" class="bg-white rounded-lg shadow-sm">
-            <div class="text-center py-16">
-                <div class="flex justify-center mb-4">
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-file-medical text-3xl text-gray-400"></i>
-                    </div>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">No Medical Records Found</h3>
-                <p class="text-gray-600 mb-6">
-                    @if(request('search'))
-                        No records match your search criteria.
-                    @else
-                        Get started by creating your first medical record for a patient.
-                    @endif
-                </p>
-                @if(!request('search'))
-                <a href="{{ route('medical-records.create') }}" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition">
-                    <i class="fas fa-plus"></i>
-                    Create First Record
-                </a>
-                @endif
+                            </td>
+                            <td class="px-6 py-4 text-sm" style="color: #5d6d7e;">{{ $record->pet->owner->user->name ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 text-sm" style="color: #5d6d7e;">
+                                <span class="truncate max-w-xs" title="{{ $record->diagnosis }}">{{ Str::limit($record->diagnosis, 30) }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm" style="color: #5d6d7e;">
+                                <span class="truncate max-w-xs" title="{{ $record->treatment }}">{{ Str::limit($record->treatment, 30) }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm" style="color: #2c3e50;">{{ $record->created_at->format('M d, Y') }}</td>
+                            <td class="px-6 py-4">
+                                <div class="flex gap-4">
+                                    <a href="{{ route('medical-records.show', $record->id) }}" class="transition" style="color: #0d5cb6;" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ route('medical-records.edit', $record->id) }}" class="transition" style="color: #28a745;" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-        </div>
-    @endif
+
+            <!-- Pagination -->
+            <div class="mt-6">
+                {{ $medicalRecords->links() }}
+            </div>
+        @else
+            <!-- Empty State -->
+            <div class="bg-white rounded-lg shadow-sm">
+                <div class="text-center py-16">
+                    <div class="flex justify-center mb-4">
+                        <div class="w-16 h-16 rounded-full flex items-center justify-center" style="background-color: #ecf0f1;">
+                            <i class="fas fa-file-medical text-3xl" style="color: #95a5a6;"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2" style="color: #2c3e50;">No Medical Records Found</h3>
+                    <p class="mb-6" style="color: #5d6d7e;">
+                        @if(request('search'))
+                            No records match your search criteria.
+                        @else
+                            Get started by creating your first medical record for a patient.
+                        @endif
+                    </p>
+                    @if(!request('search'))
+                    <a href="{{ route('medical-records.create') }}" class="inline-flex items-center gap-2 text-white px-6 py-3 rounded-lg transition" style="background-color: #0d5cb6;">
+                        <i class="fas fa-plus"></i>
+                        Create First Record
+                    </a>
+                    @endif
+                </div>
+            </div>
+        @endif
+    </div>
 </div>
 
 <style>
     .hover\:bg-gray-50:hover {
         background-color: rgba(249, 250, 251, 1);
+    }
+    
+    a:hover {
+        opacity: 0.8;
+    }
+
+    #searchInput:focus {
+        ring: 2px;
+        border-color: #0d5cb6;
+        outline: none;
     }
 </style>
 

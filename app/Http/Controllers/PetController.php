@@ -4,13 +4,81 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Pet;
+use App\Models\PetOwner;
 use App\Models\Doctor;
 use App\Models\Service;
 use App\Models\Appointment;
+use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Support\Facades\Auth;
 
 class PetController extends Controller
 {
+    // NEW: Approve pet registration
+    public function approvePet(Pet $pet)
+    {
+        // Only admins can approve pets
+        if (!in_array(Auth::user()->role, ['admin'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if ($pet->approval_status !== 'pending') {
+            return back()->with('error', 'Pet is not pending approval.');
+        }
+
+        $pet->update([
+            'approval_status' => 'approved',
+            'approved_at' => now(),
+            'rejection_reason' => null,
+        ]);
+
+        // Notify pet owner
+        $petOwnerUserId = $pet->owner->user_id;
+        $this->createNotification(
+            $petOwnerUserId,
+            'pet_approved',
+            'Pet Registration Approved',
+            "Your pet {$pet->name} has been approved! You can now book appointments.",
+            null
+        );
+
+        return back()->with('success', 'Pet approved successfully.');
+    }
+
+    // NEW: Reject pet registration
+    public function rejectPet(Request $request, Pet $pet)
+    {
+        // Only admins can reject pets
+        if (!in_array(Auth::user()->role, ['admin'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'rejection_reason' => 'required|string|max:500',
+        ]);
+
+        if ($pet->approval_status !== 'pending') {
+            return back()->with('error', 'Pet is not pending approval.');
+        }
+
+        $pet->update([
+            'approval_status' => 'rejected',
+            'rejection_reason' => $request->rejection_reason,
+        ]);
+
+        // Notify pet owner
+        $petOwnerUserId = $pet->owner->user_id;
+        $this->createNotification(
+            $petOwnerUserId,
+            'pet_rejected',
+            'Pet Registration Rejected',
+            "Your pet {$pet->name} registration was rejected. Reason: {$request->rejection_reason}",
+            null
+        );
+
+        return back()->with('success', 'Pet registration rejected.');
+    }
+
     public function createAppointment()
     {
         $petOwner = Auth::user()->petOwner;
@@ -152,41 +220,45 @@ class PetController extends Controller
     }
 
     // List pets with optional search
-   // Replace the index method in PetController.php
+    public function index(Request $request)
+    {
+        $search = $request->input('search');
+        $species = $request->input('species');
+        $approvalStatus = $request->input('approval_status');
 
-public function index(Request $request)
-{
-    $search = $request->input('search');
-    $species = $request->input('species');
+        $petsQuery = Pet::with('owner.user');
 
-    $petsQuery = Pet::with('owner.user');
+        // Search functionality
+        if ($search) {
+            $petsQuery->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('species', 'like', "%{$search}%")
+                  ->orWhere('breed', 'like', "%{$search}%")
+                  ->orWhereHas('owner.user', function($ownerQuery) use ($search) {
+                      $ownerQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
 
-    // Search functionality
-    if ($search) {
-        $petsQuery->where(function($q) use ($search) {
-            $q->where('name', 'like', "%{$search}%")
-              ->orWhere('species', 'like', "%{$search}%")
-              ->orWhere('breed', 'like', "%{$search}%")
-              ->orWhereHas('owner.user', function($ownerQuery) use ($search) {
-                  $ownerQuery->where('name', 'like', "%{$search}%");
-              });
-        });
+        // Species filter
+        if ($species) {
+            $petsQuery->where('species', 'like', $species);
+        }
+
+        // Approval status filter
+        if ($approvalStatus) {
+            $petsQuery->where('approval_status', $approvalStatus);
+        }
+
+        $pets = $petsQuery->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+
+        // Handle AJAX requests for live search
+        if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return view('pets.index', compact('pets', 'search'))->render();
+        }
+
+        return view('pets.index', compact('pets', 'search'));
     }
-
-    // Species filter
-    if ($species) {
-        $petsQuery->where('species', 'like', $species);
-    }
-
-    $pets = $petsQuery->orderBy('name')->paginate(10)->withQueryString();
-
-    // Handle AJAX requests for live search
-    if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
-        return view('pets.index', compact('pets', 'search'))->render();
-    }
-
-    return view('pets.index', compact('pets', 'search'));
-}
 
     public function show($id)
     {
@@ -235,9 +307,26 @@ public function index(Request $request)
         }
     }
 
-    // Add missing store method to handle resource route POST /pets
+    public function create()
+    {
+        // Only admins and doctors can add pets
+        if (!in_array(Auth::user()->role, ['admin', 'doctor'])) {
+            abort(403, 'Unauthorized action.');
+        }
+        
+        // Get all pet owners for the dropdown
+        $petOwners = PetOwner::with('user')->get();
+        return view('pets.create', compact('petOwners'));
+    }
+
+    // Admin/Doctor store method - automatically approved
     public function store(Request $request)
     {
+        // Only admins and doctors can add pets
+        if (!in_array(Auth::user()->role, ['admin', 'doctor'])) {
+            abort(403, 'Unauthorized action.');
+        }
+        
         $validated = $request->validate([
             'owner_id' => 'required|exists:pet_owners,id',
             'name' => 'required|string|max:255',
@@ -247,12 +336,31 @@ public function index(Request $request)
             'weight' => 'nullable|numeric|min:0',
             'color' => 'nullable|string|max:255',
             'gender' => 'nullable|in:male,female',
+            'microchip_id' => 'nullable|string|max:255',
             'medical_notes' => 'nullable|string',
         ]);
 
+        // Admin/Doctor added pets are automatically approved
+        $validated['approval_status'] = 'approved';
+        $validated['approved_at'] = now();
+
         $pet = Pet::create($validated);
 
-        return redirect()->route('pets.index')
-            ->with('success', 'Pet created successfully.');
+        return redirect()->route('admin.pets')
+            ->with('success', 'Pet added successfully.');
+    }
+
+    /**
+     * Create a notification for a specific user
+     */
+    private function createNotification($userId, $type, $title, $message, $appointmentId = null)
+    {
+        Notification::create([
+            'user_id' => $userId,
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'appointment_id' => $appointmentId,
+        ]);
     }
 }

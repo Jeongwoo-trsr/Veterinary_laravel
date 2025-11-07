@@ -7,15 +7,15 @@
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
+            <h1 class="text-2xl font-bold text-[#1e3a5f]">Reports & Analytics</h1>
             <p class="text-gray-600">Clinic statistics and performance metrics</p>
         </div>
         <div class="flex space-x-3">
-            <button onclick="exportToPDF()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+            <button onclick="exportToPDF()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition">
                 <i class="fas fa-file-pdf mr-2"></i>
                 Export PDF
             </button>
-            <button onclick="exportToExcel()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+            <button onclick="exportToExcel()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition">
                 <i class="fas fa-file-excel mr-2"></i>
                 Export Excel
             </button>
@@ -24,74 +24,66 @@
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-blue-100 overflow-hidden shadow rounded-lg">
-            <div class="p-6">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-chart-line text-blue-600 text-2xl"></i>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">Total Revenue</dt>
-                            <dd class="text-lg font-medium text-gray-900">
-                                ${{ number_format($revenue_by_service->sum('total_revenue'), 2) }}
-                            </dd>
-                        </dl>
-                    </div>
+        <div class="bg-white border-l-4 border-[#0d47a1] shadow rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-chart-line text-[#0d47a1] text-2xl"></i>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-600 truncate">Total Revenue</dt>
+                        <dd class="text-lg font-medium text-[#0d47a1]">
+                            ${{ number_format($revenue_by_service->sum('total_revenue'), 2) }}
+                        </dd>
+                    </dl>
                 </div>
             </div>
         </div>
 
-        <div class="bg-blue-100 overflow-hidden shadow rounded-lg">
-            <div class="p-6">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-calendar-check text-green-600 text-2xl"></i>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">Completed Appointments</dt>
-                            <dd class="text-lg font-medium text-gray-900">
-                                {{ $appointments_by_status->where('status', 'completed')->first()->count ?? 0 }}
-                            </dd>
-                        </dl>
-                    </div>
+        <div class="bg-white border-l-4 border-green-600 shadow rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-calendar-check text-green-600 text-2xl"></i>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-600 truncate">Completed Appointments</dt>
+                        <dd class="text-lg font-medium text-green-600">
+                            {{ $appointments_by_status->where('status', 'completed')->first()->count ?? 0 }}
+                        </dd>
+                    </dl>
                 </div>
             </div>
         </div>
 
-        <div class="bg-blue-100 overflow-hidden shadow rounded-lg">
-            <div class="p-6">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-paw text-purple-600 text-2xl"></i>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">Total Pets</dt>
-                            <dd class="text-lg font-medium text-gray-900">
-                                {{ $pets_by_species->sum('count') }}
-                            </dd>
-                        </dl>
-                    </div>
+        <div class="bg-white border-l-4 border-[#2c3e50] shadow rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-paw text-[#2c3e50] text-2xl"></i>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-600 truncate">Total Pets</dt>
+                        <dd class="text-lg font-medium text-[#2c3e50]">
+                            {{ $pets_by_species->sum('count') }}
+                        </dd>
+                    </dl>
                 </div>
             </div>
         </div>
 
-        <div class="bg-blue-100 overflow-hidden shadow rounded-lg">
-            <div class="p-6">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-users text-orange-600 text-2xl"></i>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">Active Clients</dt>
-                            <dd class="text-lg font-medium text-gray-900">
-                                {{ $pets_by_species->sum('count') }}
-                            </dd>
-                        </dl>
-                    </div>
+        <div class="bg-white border-l-4 border-[#d4911e] shadow rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-users text-[#d4911e] text-2xl"></i>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-600 truncate">Active Clients</dt>
+                        <dd class="text-lg font-medium text-[#d4911e]">
+                            {{ $pets_by_species->sum('count') }}
+                        </dd>
+                    </dl>
                 </div>
             </div>
         </div>
@@ -100,33 +92,33 @@
     <!-- Charts Section -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Revenue by Service Chart -->
-        <div class="bg-blue-100 shadow rounded-lg">
+        <div class="bg-white shadow-lg rounded-lg border-t-4 border-[#1e3a5f]">
             <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Revenue by Service</h3>
+                <h3 class="text-lg leading-6 font-medium text-[#1e3a5f] mb-4">Revenue by Service</h3>
                 <canvas id="revenueChart" width="400" height="200"></canvas>
             </div>
         </div>
 
         <!-- Appointments by Status Chart -->
-        <div class="bg-blue-100 shadow rounded-lg">
+        <div class="bg-white shadow-lg rounded-lg border-t-4 border-[#1e3a5f]">
             <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Appointments by Status</h3>
+                <h3 class="text-lg leading-6 font-medium text-[#1e3a5f] mb-4">Appointments by Status</h3>
                 <canvas id="appointmentsChart" width="400" height="200"></canvas>
             </div>
         </div>
 
         <!-- Pets by Species Chart -->
-        <div class="bg-blue-100 shadow rounded-lg">
+        <div class="bg-white shadow-lg rounded-lg border-t-4 border-[#1e3a5f]">
             <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Pets by Species</h3>
+                <h3 class="text-lg leading-6 font-medium text-[#1e3a5f] mb-4">Pets by Species</h3>
                 <canvas id="petsChart" width="400" height="200"></canvas>
             </div>
         </div>
 
         <!-- Monthly Appointments Trend -->
-        <div class="bg-blue-100 shadow rounded-lg">
+        <div class="bg-white shadow-lg rounded-lg border-t-4 border-[#1e3a5f]">
             <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Monthly Appointments Trend</h3>
+                <h3 class="text-lg leading-6 font-medium text-[#1e3a5f] mb-4">Monthly Appointments Trend</h3>
                 <canvas id="monthlyChart" width="400" height="200"></canvas>
             </div>
         </div>
@@ -135,18 +127,18 @@
     <!-- Detailed Tables -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Revenue by Service Table -->
-        <div class="bg-blue-100 shadow rounded-lg">
+        <div class="bg-white shadow-lg rounded-lg border-t-4 border-[#1e3a5f]">
             <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Revenue by Service</h3>
+                <h3 class="text-lg leading-6 font-medium text-[#1e3a5f] mb-4">Revenue by Service</h3>
                 <div class="overflow-hidden">
                     <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                        <thead class="bg-[#1e3a5f]">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Service</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Revenue</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-blue-100 divide-y divide-gray-200">
+                        <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($revenue_by_service as $service)
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -170,15 +162,15 @@
         </div>
 
         <!-- Appointments by Status Table -->
-        <div class="bg-blue-100 shadow rounded-lg">
+        <div class="bg-white shadow-lg rounded-lg border-t-4 border-[#1e3a5f]">
             <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Appointments by Status</h3>
+                <h3 class="text-lg leading-6 font-medium text-[#1e3a5f] mb-4">Appointments by Status</h3>
                 <div class="overflow-hidden">
                     <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                        <thead class="bg-[#1e3a5f]">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Count</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
@@ -186,9 +178,9 @@
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                        @if($status->status === 'scheduled') bg-yellow-100 text-yellow-800
-                                        @elseif($status->status === 'confirmed') bg-blue-100 text-blue-800
-                                        @elseif($status->status === 'in_progress') bg-purple-100 text-purple-800
+                                        @if($status->status === 'scheduled') bg-[#d4911e] bg-opacity-10 text-[#d4911e]
+                                        @elseif($status->status === 'confirmed') bg-[#0d47a1] bg-opacity-10 text-[#0d47a1]
+                                        @elseif($status->status === 'in_progress') bg-[#2c3e50] bg-opacity-10 text-[#2c3e50]
                                         @elseif($status->status === 'completed') bg-green-100 text-green-800
                                         @else bg-red-100 text-red-800
                                         @endif">
@@ -227,12 +219,12 @@ const revenueChart = new Chart(revenueCtx, {
         datasets: [{
             data: {!! json_encode($revenue_by_service->pluck('total_revenue')) !!},
             backgroundColor: [
-                '#3B82F6',
+                '#0d47a1',
+                '#d4911e',
+                '#2c3e50',
                 '#10B981',
-                '#F59E0B',
                 '#EF4444',
-                '#8B5CF6',
-                '#06B6D4'
+                '#8B5CF6'
             ]
         }]
     },
@@ -255,9 +247,9 @@ const appointmentsChart = new Chart(appointmentsCtx, {
         datasets: [{
             data: {!! json_encode($appointments_by_status->pluck('count')) !!},
             backgroundColor: [
-                '#F59E0B',
-                '#3B82F6',
-                '#8B5CF6',
+                '#d4911e',
+                '#0d47a1',
+                '#2c3e50',
                 '#10B981',
                 '#EF4444'
             ]
@@ -282,8 +274,8 @@ const petsChart = new Chart(petsCtx, {
         datasets: [{
             label: 'Number of Pets',
             data: {!! json_encode($pets_by_species->pluck('count')) !!},
-            backgroundColor: '#3B82F6',
-            borderColor: '#1D4ED8',
+            backgroundColor: '#0d47a1',
+            borderColor: '#1e3a5f',
             borderWidth: 1
         }]
     },
@@ -297,7 +289,7 @@ const petsChart = new Chart(petsCtx, {
     }
 });
 
-// Monthly Appointments Trend (Sample data)
+// Monthly Appointments Trend
 const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
 const monthlyChart = new Chart(monthlyCtx, {
     type: 'line',
